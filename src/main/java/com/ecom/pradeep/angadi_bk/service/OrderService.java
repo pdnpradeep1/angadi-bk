@@ -17,11 +17,15 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
+    private final EmailService emailService;
+    private final SmsService smsService; // Optional SMS Service
 
-    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, ProductRepository productRepository) {
+    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, ProductRepository productRepository, EmailService emailService, SmsService smsService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.productRepository = productRepository;
+        this.emailService = emailService;
+        this.smsService = smsService;
     }
 
     public Order createOrder(Long customerId) {
@@ -60,6 +64,35 @@ public class OrderService {
         order.setTotalAmount(totalAmount.doubleValue());
         orderRepository.save(order);
         cartRepository.deleteAll(cartItems); // Clear cart after placing order
+
+
+//         Send confirmation email to customer
+        sendOrderConfirmationEmail(order);
+
+        // Notify store owner
+        notifyStoreOwner(order);
         return order;
+    }
+
+
+    private void sendOrderConfirmationEmail(Order order) {
+        String subject = "Order Confirmation - #" + order.getOrderNumber();
+        String body = "Dear " + order.getCustomer().getName() + ",\n\n" +
+                "Your order #" + order.getOrderNumber() + " has been successfully placed!\n" +
+                "We will notify you once it's shipped.\n\n" +
+                "Thank you for shopping with us!";
+        emailService.sendEmail(order.getCustomer().getEmail(), subject, body);
+
+        // Optional SMS notification
+//        smsService.sendSms(order.getCustomer().getPhoneNumber(), "Your order #" + order.getOrderNumber() + " is confirmed!");
+    }
+
+    private void notifyStoreOwner(Order order) {
+        String storeOwnerEmail = order.getStore().getOwner().getEmail();
+        String subject = "New Order Received - #" + order.getOrderNumber();
+        String body = "Hello " + order.getStore().getOwner().getName() + ",\n\n" +
+                "A new order #" + order.getOrderNumber() + " has been placed in your store.\n" +
+                "Please review and process it.\n\nThanks!";
+        emailService.sendEmail(storeOwnerEmail, subject, body);
     }
 }

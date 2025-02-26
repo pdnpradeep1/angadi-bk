@@ -35,10 +35,18 @@ public class Order {
 
     private int quantity;
     private double totalAmount;
-    private String status; // PENDING, PAID, FAILED
+    private String status; // PENDING, PAID, FAILED,SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELED
+    private boolean isPrepaid;
+    private Date updatedAt;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> orderItems;
+
+
+    @ManyToOne
+    @JoinColumn(name = "store_id")  // ✅ Ensure Order is linked to Store
+    private Store store;
+
 
     public Order(OrderRequest orderRequest, User customer, Product product) {
         this.orderNumber = "ORD-" + System.currentTimeMillis(); // Generate a unique order number
@@ -48,4 +56,18 @@ public class Order {
         this.quantity = orderRequest.getQuantity();
         this.totalAmount = product.getPrice() * orderRequest.getQuantity();
     }
+    public void updateStatus(String newStatus) {
+        this.status = newStatus;
+        this.updatedAt = new Date();
+    }
+
+    public boolean canBeCancelled() {
+        return "PENDING".equals(status) || "SHIPPED".equals(status);
+    }
+
+    public void cancelOrder() {
+        this.status = "CANCELED";
+        this.updatedAt = new Date();
+    }
+
 }
