@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.List;
 
 @Data
 @Entity
@@ -19,7 +21,9 @@ public class Order {
 
     private String orderNumber;
 
-    private LocalDateTime createdAt;
+//    private LocalDateTime createdAt;
+
+    private Date createdAt = new Date();
 
     @ManyToOne
     @JoinColumn(name = "customer_id", nullable = false)
@@ -31,10 +35,14 @@ public class Order {
 
     private int quantity;
     private double totalAmount;
+    private String status; // PENDING, PAID, FAILED
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    private List<OrderItem> orderItems;
 
     public Order(OrderRequest orderRequest, User customer, Product product) {
         this.orderNumber = "ORD-" + System.currentTimeMillis(); // Generate a unique order number
-        this.createdAt = LocalDateTime.now();
+//        this.createdAt = LocalDateTime.now();
         this.customer = customer;
         this.product = product;
         this.quantity = orderRequest.getQuantity();

@@ -1,5 +1,7 @@
 package com.ecom.pradeep.angadi_bk.service;
 
+import com.ecom.pradeep.angadi_bk.model.EmailLog;
+import com.ecom.pradeep.angadi_bk.repo.EmailLogRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmailService {
     private final JavaMailSender mailSender;
+    private final EmailLogRepository emailLogRepository;
 
     public void sendResetPasswordEmail(String to, String resetToken) {
         String resetLink = "http://localhost:8080/auth/reset-password?token=" + resetToken;
@@ -21,7 +24,7 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    private void sendEmail(String to, String subject, String body) {
+    public void sendEmail(String to, String subject, String body) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
@@ -29,8 +32,15 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(body, true);
             mailSender.send(message);
+
+            // Log email in the database
+            EmailLog emailLog = new EmailLog(to, subject, body);
+            emailLogRepository.save(emailLog);
+
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to send email", e);
         }
     }
+
+
 }
