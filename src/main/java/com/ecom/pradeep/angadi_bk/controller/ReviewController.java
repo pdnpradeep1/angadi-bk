@@ -2,6 +2,7 @@ package com.ecom.pradeep.angadi_bk.controller;
 
 import com.ecom.pradeep.angadi_bk.model.Review;
 import com.ecom.pradeep.angadi_bk.service.ReviewService;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -25,8 +26,13 @@ public class ReviewController {
     }
 
     @GetMapping("/{productId}")
-    public List<Review> getReviewsForProduct(@PathVariable Long productId) {
-        return reviewService.getReviewsForProduct(productId);
+    public Page<Review> getReviewsForProduct(
+            @PathVariable Long productId,
+            @RequestParam(defaultValue = "latest") String sortBy,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        return reviewService.getReviewsForProduct(productId, sortBy, page, size);
     }
 }
 

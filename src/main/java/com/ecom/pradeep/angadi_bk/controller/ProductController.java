@@ -67,4 +67,10 @@ public class ProductController {
 //        return productService.searchProducts(query, categoryId, minPrice, maxPrice, inStock);
 //    }
 
+    @GetMapping("/{productId}")
+    public Product getProduct(@PathVariable Long productId) {
+//        return productService.getProductById(productId);
+        return null;
+    }
+
 }
