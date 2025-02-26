@@ -35,7 +35,7 @@ public class Order {
 
     private int quantity;
     private double totalAmount;
-    private String status; // PENDING, PAID, FAILED,SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELED
+    private String status; // PENDING, PAID, FAILED,SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELED, RETURN_REQUESTED, RETURN_APPROVED, REFUNDED, EXCHANGED
     private boolean isPrepaid;
     private Date updatedAt;
 
@@ -47,6 +47,17 @@ public class Order {
     @JoinColumn(name = "store_id")  // ✅ Ensure Order is linked to Store
     private Store store;
 
+    private int reminderCount = 0; // Track number of reminders sent
+    private Date lastReminderSentAt;
+
+    public boolean canReceiveMoreReminders(int maxAttempts) {
+        return reminderCount < maxAttempts;
+    }
+
+    public void incrementReminderCount() {
+        this.reminderCount++;
+        this.lastReminderSentAt = new Date();
+    }
 
     public Order(OrderRequest orderRequest, User customer, Product product) {
         this.orderNumber = "ORD-" + System.currentTimeMillis(); // Generate a unique order number
@@ -67,6 +78,15 @@ public class Order {
 
     public void cancelOrder() {
         this.status = "CANCELED";
+        this.updatedAt = new Date();
+    }
+
+    public boolean canBeReturned() {
+        return "DELIVERED".equals(status);
+    }
+
+    public void requestReturn() {
+        this.status = "RETURN_REQUESTED";
         this.updatedAt = new Date();
     }
 
