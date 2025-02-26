@@ -13,9 +13,13 @@ public class PasswordController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestParam String email) {
-        return ResponseEntity.ok(passwordService.forgotPassword(email));
+        try {
+            String s = passwordService.forgotPassword(email);
+            return ResponseEntity.ok("success");
+        } catch (Exception e) {
+            return ResponseEntity.ok("failed");
+        }
     }
-
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
         return ResponseEntity.ok(passwordService.resetPassword(token, newPassword));
