@@ -1,5 +1,6 @@
 package com.ecom.pradeep.angadi_bk.service;
 
+import com.ecom.pradeep.angadi_bk.exceptions.ResourceNotFoundException;
 import com.ecom.pradeep.angadi_bk.model.Category;
 import com.ecom.pradeep.angadi_bk.model.Product;
 import com.ecom.pradeep.angadi_bk.model.Store;
@@ -98,18 +99,18 @@ public class ProductService {
         return productRepository.save(product);
     }
 
-    public Product addTagsToProduct(Long productId, Set<Long> tagIds, String ownerEmail) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-
-        if (!product.getStore().getOwner().getEmail().equals(ownerEmail)) {
-            throw new RuntimeException("Unauthorized to update product tags");
-        }
-
-        Set<Tag> tags = new HashSet<>(tagRepository.findAllById(tagIds));
-        product.setTags(tags);
-        return productRepository.save(product);
-    }
+//    public Product addTagsToProduct(Long productId, Set<Long> tagIds, String ownerEmail) {
+//        Product product = productRepository.findById(productId)
+//                .orElseThrow(() -> new RuntimeException("Product not found"));
+//
+//        if (!product.getStore().getOwner().getEmail().equals(ownerEmail)) {
+//            throw new RuntimeException("Unauthorized to update product tags");
+//        }
+//
+//        Set<Tag> tags = new HashSet<>(tagRepository.findAllById(tagIds));
+//        product.setTags(tags);
+//        return productRepository.save(product);
+//    }
 
 //    @Cacheable(value = "productSearch", key = "#query + #categoryId + #minPrice + #maxPrice + #inStock")
 //    public List<Product> searchProducts(String query, Long categoryId, Double minPrice, Double maxPrice, Boolean inStock) {
@@ -141,6 +142,25 @@ public class ProductService {
 //                .fetchAllHits();
 //    }
 
+    // Add this method to ProductService
+
+    public Product addTagsToProduct(Long productId, Set<Long> tagIds, String ownerEmail) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        // Verify ownership
+        if (!product.getStore().getOwner().getEmail().equals(ownerEmail)) {
+            throw new RuntimeException("Unauthorized to update this product");
+        }
+
+        // Get all tags by IDs
+        Set<Tag> tags = new HashSet<>(tagRepository.findAllById(tagIds));
+
+        // Set the tags on the product
+        product.setTags(tags);
+
+        return productRepository.save(product);
+    }
 
 
 }

@@ -1,8 +1,12 @@
 package com.ecom.pradeep.angadi_bk.controller;
 
 import com.ecom.pradeep.angadi_bk.model.Product;
+import com.ecom.pradeep.angadi_bk.model.ProductRequest;
 import com.ecom.pradeep.angadi_bk.service.ImageUploadService;
 import com.ecom.pradeep.angadi_bk.service.ProductService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -72,5 +76,21 @@ public class ProductController {
 //        return productService.getProductById(productId);
         return null;
     }
+
+//    @PostMapping("/{storeId}")
+//    public ResponseEntity<Product> createProduct(
+//            @PathVariable Long storeId,
+//            @Valid @RequestBody ProductRequest productRequest,
+//            @RequestHeader("Owner-Email") String ownerEmail,
+//            BindingResult bindingResult) {
+//
+//        if (bindingResult.hasErrors()) {
+//            throw new ValidationException(bindingResult);
+//        }
+//
+//        // Convert ProductRequest to Product and save
+//        Product product = productService.createProduct(storeId, productRequest, ownerEmail);
+//        return ResponseEntity.status(HttpStatus.CREATED).body(product);
+//    }
 
 }

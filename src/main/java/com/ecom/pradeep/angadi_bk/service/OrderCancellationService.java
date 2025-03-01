@@ -1,6 +1,7 @@
 package com.ecom.pradeep.angadi_bk.service;
 
 import com.ecom.pradeep.angadi_bk.model.Order;
+import com.ecom.pradeep.angadi_bk.model.OrderItem;
 import com.ecom.pradeep.angadi_bk.repo.OrderRepository;
 import org.springframework.stereotype.Service;
 import com.stripe.exception.StripeException;
@@ -11,17 +12,22 @@ public class OrderCancellationService {
     private final PaymentService paymentService;
     private final EmailService emailService;
     private final SmsService smsService;
+    private final InventoryService inventoryService;
 
-    public OrderCancellationService(OrderRepository orderRepository, PaymentService paymentService, EmailService emailService, SmsService smsService) {
+    public OrderCancellationService(OrderRepository orderRepository, PaymentService paymentService, EmailService emailService, SmsService smsService, InventoryService inventoryService) {
         this.orderRepository = orderRepository;
         this.paymentService = paymentService;
         this.emailService = emailService;
         this.smsService = smsService;
+        this.inventoryService = inventoryService;
     }
 
     public Order cancelOrder(Long orderId) throws StripeException {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found!"));
+
+
+
 
         if (!order.canBeCancelled()) {
             throw new RuntimeException("Order cannot be canceled at this stage.");
@@ -35,6 +41,15 @@ public class OrderCancellationService {
             paymentService.processRefund(order.getOrderNumber());
         }
 
+        // Release reserved inventory on cancellation
+        for (OrderItem item : order.getOrderItems()) {
+            inventoryService.releaseInventory(
+                    item.getProduct().getId(),
+                    item.getQuantity(),
+                    order.getId(),
+                    order.getStore().getOwner().getEmail()
+            );
+        }
 
         // Send cancellation notification
         sendOrderCancellationNotification(order);

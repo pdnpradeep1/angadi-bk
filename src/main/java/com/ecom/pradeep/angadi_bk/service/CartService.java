@@ -79,7 +79,7 @@ public class CartService {
         List<Cart> cartItems = cartRepository.findByCustomerId(customerId);
 
         BigDecimal subtotal = cartItems.stream()
-                .map(item -> BigDecimal.valueOf(item.getProduct().getPrice()) // Convert double to BigDecimal
+                .map(item -> item.getProduct().getPrice() // Convert double to BigDecimal
                         .multiply(BigDecimal.valueOf(item.getQuantity()))) // Multiply with quantity
                 .reduce(BigDecimal.ZERO, BigDecimal::add); // Sum up the values
 

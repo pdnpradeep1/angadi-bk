@@ -19,13 +19,16 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final EmailService emailService;
     private final SmsService smsService; // Optional SMS Service
+    private final InventoryService inventoryService;
 
-    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, ProductRepository productRepository, EmailService emailService, SmsService smsService) {
+
+    public OrderService(OrderRepository orderRepository, CartRepository cartRepository, ProductRepository productRepository, EmailService emailService, SmsService smsService, InventoryService inventoryService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.productRepository = productRepository;
         this.emailService = emailService;
         this.smsService = smsService;
+        this.inventoryService = inventoryService;
     }
 
     public Order createOrder(Long customerId) {
@@ -55,7 +58,7 @@ public class OrderService {
             orderItem.setOrder(order);
             orderItem.setProduct(product);
             orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setPrice(BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            orderItem.setPrice(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
 
             totalAmount = totalAmount.add(orderItem.getPrice());
             order.getOrderItems().add(orderItem);
@@ -64,7 +67,14 @@ public class OrderService {
         order.setTotalAmount(totalAmount.doubleValue());
         orderRepository.save(order);
         cartRepository.deleteAll(cartItems); // Clear cart after placing order
-
+        for (OrderItem item : order.getOrderItems()) {
+            inventoryService.reserveInventory(
+                    item.getProduct().getId(),
+                    item.getQuantity(),
+                    order.getId(),
+                    order.getStore().getOwner().getEmail()
+            );
+        }
 
 //         Send confirmation email to customer
         sendOrderConfirmationEmail(order);

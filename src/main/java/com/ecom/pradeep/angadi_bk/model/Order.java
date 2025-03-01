@@ -65,7 +65,7 @@ public class Order {
         this.customer = customer;
         this.product = product;
         this.quantity = orderRequest.getQuantity();
-        this.totalAmount = product.getPrice() * orderRequest.getQuantity();
+        this.totalAmount = product.getPrice().doubleValue() * orderRequest.getQuantity();
     }
     public void updateStatus(String newStatus) {
         this.status = newStatus;
