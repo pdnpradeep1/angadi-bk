@@ -2,6 +2,7 @@ package com.ecom.pradeep.angadi_bk.controller;
 
 import com.ecom.pradeep.angadi_bk.model.Store;
 import com.ecom.pradeep.angadi_bk.model.StoreRevenue;
+import com.ecom.pradeep.angadi_bk.model.StoreStatusUpdateRequest;
 import com.ecom.pradeep.angadi_bk.model.User;
 import com.ecom.pradeep.angadi_bk.service.StoreService;
 import com.ecom.pradeep.angadi_bk.service.UserService;
@@ -59,6 +60,24 @@ public class StoreController {
         User owner = userService.findByEmail(userDetails.getUsername());
         List<Store> stores = storeService.getStoresByOwner(owner.getId());
         return ResponseEntity.ok(stores);
+    }
+
+    @GetMapping("/stores/{StoreId}")
+    public ResponseEntity<Store> getMyStores(@PathVariable Long StoreId, @AuthenticationPrincipal UserDetails userDetails) {
+        User owner = userService.findByEmail(userDetails.getUsername());
+        Store storeDetails = storeService.getStoreById(StoreId);
+        if (storeDetails.getOwner().getEmail().equals(owner.getEmail())) {
+            return ResponseEntity.ok(storeDetails);
+        } else {
+            throw new IllegalAccessError("User does not have access permission for this store ");
+        }
+    }
+
+    @PatchMapping("/stores/{StoreId}")
+    public ResponseEntity<Store> updateVisibility(@PathVariable Long StoreId, @RequestBody StoreStatusUpdateRequest storeRequest, @AuthenticationPrincipal UserDetails userDetails) {
+        User owner = userService.findByEmail(userDetails.getUsername());
+        Store store = storeService.setStoreVisibility(StoreId, storeRequest.isVisible(), owner.getEmail());
+        return ResponseEntity.ok(store);
     }
 
     @GetMapping("/visible-stores")
