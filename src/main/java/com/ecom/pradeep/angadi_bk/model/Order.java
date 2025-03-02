@@ -1,19 +1,17 @@
 package com.ecom.pradeep.angadi_bk.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 
-@Data
 @Entity
-@NoArgsConstructor // ✅ This ensures default constructor exists
-@AllArgsConstructor
 @Table(name = "orders")
+@Data
+@NoArgsConstructor
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,73 +19,110 @@ public class Order {
 
     private String orderNumber;
 
-//    private LocalDateTime createdAt;
-
-    private Date createdAt = new Date();
-
-    @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "customer_id")
     private User customer;
 
-    @ManyToOne
-    @JoinColumn(name = "product_id")
-    private Product product;
-
-    private int quantity;
-    private double totalAmount;
-    private String status; // PENDING, PAID, FAILED,SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELED, RETURN_REQUESTED, RETURN_APPROVED, REFUNDED, EXCHANGED
-    private boolean isPrepaid;
-    private Date updatedAt;
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> orderItems;
-
-
-    @ManyToOne
-    @JoinColumn(name = "store_id")  // ✅ Ensure Order is linked to Store
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "store_id")
     private Store store;
 
-    private int reminderCount = 0; // Track number of reminders sent
-    private Date lastReminderSentAt;
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
-    public boolean canReceiveMoreReminders(int maxAttempts) {
-        return reminderCount < maxAttempts;
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "shipping_address_id")
+    private Address shippingAddress;
+
+    private String paymentMethod;
+
+    private String paymentStatus;
+
+    private BigDecimal subtotal;
+
+    private BigDecimal shippingCost;
+
+    private BigDecimal tax;
+
+    private BigDecimal discount;
+
+    private Double totalAmount;
+
+    private String status;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    private String notes;
+
+    private String trackingNumber;
+
+    private String carrierName;
+
+    private LocalDateTime estimatedDelivery;
+
+    private boolean prepaid;
+
+    private Integer reminderCount = 0;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // Business methods
+    public boolean canBeCancelled() {
+        return "PENDING".equals(status) || "PROCESSING".equals(status);
+    }
+
+    public boolean canBeReturned() {
+        return "DELIVERED".equals(status) &&
+                createdAt.plusDays(30).isAfter(LocalDateTime.now());
+    }
+
+    public void cancelOrder() {
+        if (!canBeCancelled()) {
+            throw new IllegalStateException("Order cannot be cancelled at this stage");
+        }
+        this.status = "CANCELLED";
+    }
+
+    public void requestReturn() {
+        if (!canBeReturned()) {
+            throw new IllegalStateException("Return not allowed for this order");
+        }
+        this.status = "RETURN_REQUESTED";
+    }
+
+    public void updateStatus(String newStatus) {
+        // Validate status transition
+        if ("CANCELLED".equals(newStatus) && !canBeCancelled()) {
+            throw new IllegalStateException("Order cannot be cancelled at this stage");
+        }
+
+        if ("RETURN_REQUESTED".equals(newStatus) && !canBeReturned()) {
+            throw new IllegalStateException("Return not allowed for this order");
+        }
+
+        this.status = newStatus;
+    }
+
+    public boolean canReceiveMoreReminders(int maxReminders) {
+        return reminderCount < maxReminders;
     }
 
     public void incrementReminderCount() {
         this.reminderCount++;
-        this.lastReminderSentAt = new Date();
     }
 
-    public Order(OrderRequest orderRequest, User customer, Product product) {
-        this.orderNumber = "ORD-" + System.currentTimeMillis(); // Generate a unique order number
-//        this.createdAt = LocalDateTime.now();
-        this.customer = customer;
-        this.product = product;
-        this.quantity = orderRequest.getQuantity();
-        this.totalAmount = product.getPrice().doubleValue() * orderRequest.getQuantity();
+    public boolean isPrepaid() {
+        return prepaid;
     }
-    public void updateStatus(String newStatus) {
-        this.status = newStatus;
-        this.updatedAt = new Date();
-    }
-
-    public boolean canBeCancelled() {
-        return "PENDING".equals(status) || "SHIPPED".equals(status);
-    }
-
-    public void cancelOrder() {
-        this.status = "CANCELED";
-        this.updatedAt = new Date();
-    }
-
-    public boolean canBeReturned() {
-        return "DELIVERED".equals(status);
-    }
-
-    public void requestReturn() {
-        this.status = "RETURN_REQUESTED";
-        this.updatedAt = new Date();
-    }
-
 }
