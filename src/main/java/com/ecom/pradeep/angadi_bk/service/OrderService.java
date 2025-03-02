@@ -3,6 +3,7 @@ package com.ecom.pradeep.angadi_bk.service;
 import com.ecom.pradeep.angadi_bk.exceptions.ResourceNotFoundException;
 import com.ecom.pradeep.angadi_bk.model.*;
 import com.ecom.pradeep.angadi_bk.repo.*;
+import com.ecom.pradeep.angadi_bk.utils.OrderSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -149,28 +150,28 @@ public class OrderService {
         return "ORD-" + (1000 + new Random().nextInt(9000));
     }
 
-    private void sendOrderConfirmationEmail(Order order) {
-        String subject = "Order Confirmation - #" + order.getOrderNumber();
-        String body = "Dear " + order.getCustomer().getName() + ",\n\n" +
-                "Your order #" + order.getOrderNumber() + " has been successfully placed!\n" +
-                "We will notify you once it's shipped.\n\n" +
-                "Thank you for shopping with us!";
-        emailService.sendEmail(order.getCustomer().getEmail(), subject, body);
-
-        // Send SMS notification if phone number is available
-        if (order.getCustomer().getPhone() != null) {
-            smsService.sendSms(order.getCustomer().getPhone(),
-                    "Your order #" + order.getOrderNumber() + " is confirmed!");
-        }
-
-        // Notify store owner
-        String storeOwnerEmail = order.getStore().getOwner().getEmail();
-        String ownerSubject = "New Order Received - #" + order.getOrderNumber();
-        String ownerBody = "Hello " + order.getStore().getOwner().getName() + ",\n\n" +
-                "A new order #" + order.getOrderNumber() + " has been placed in your store.\n" +
-                "Please review and process it.\n\nThanks!";
-        emailService.sendEmail(storeOwnerEmail, ownerSubject, ownerBody);
-    }
+//    private void sendOrderConfirmationEmail(Order order) {
+//        String subject = "Order Confirmation - #" + order.getOrderNumber();
+//        String body = "Dear " + order.getCustomer().getName() + ",\n\n" +
+//                "Your order #" + order.getOrderNumber() + " has been successfully placed!\n" +
+//                "We will notify you once it's shipped.\n\n" +
+//                "Thank you for shopping with us!";
+//        emailService.sendEmail(order.getCustomer().getEmail(), subject, body);
+//
+//        // Send SMS notification if phone number is available
+//        if (order.getCustomer().getPhone() != null) {
+//            smsService.sendSms(order.getCustomer().getPhone(),
+//                    "Your order #" + order.getOrderNumber() + " is confirmed!");
+//        }
+//
+//        // Notify store owner
+//        String storeOwnerEmail = order.getStore().getOwner().getEmail();
+//        String ownerSubject = "New Order Received - #" + order.getOrderNumber();
+//        String ownerBody = "Hello " + order.getStore().getOwner().getName() + ",\n\n" +
+//                "A new order #" + order.getOrderNumber() + " has been placed in your store.\n" +
+//                "Please review and process it.\n\nThanks!";
+//        emailService.sendEmail(storeOwnerEmail, ownerSubject, ownerBody);
+//    }
 
     @Transactional(readOnly = true)
     public Order getOrderById(Long orderId) {
@@ -241,38 +242,38 @@ public class OrderService {
         return orderRepository.findAll(spec, pageable);
     }
 
-    @Transactional
-    public Order updateOrderStatus(Long orderId, String status) {
-        Order order = getOrderById(orderId);
-        order.updateStatus(status);
-
-        // If order is shipped, set tracking information
-        if ("SHIPPED".equals(status)) {
-            order.setTrackingNumber("TRK" + (10000000 + new Random().nextInt(90000000)) + "IN");
-            order.setCarrierName("Express Delivery");
-            order.setEstimatedDelivery(LocalDateTime.now().plusDays(3));
-
-            // Send shipping notification
-            String subject = "Order Shipped - #" + order.getOrderNumber();
-            String body = "Dear " + order.getCustomer().getName() + ",\n\n" +
-                    "Your order #" + order.getOrderNumber() + " has been shipped!\n" +
-                    "Tracking number: " + order.getTrackingNumber() + "\n" +
-                    "Carrier: " + order.getCarrierName() + "\n" +
-                    "Estimated delivery: " + order.getEstimatedDelivery().toLocalDate() + "\n\n" +
-                    "Thank you for shopping with us!";
-            emailService.sendEmail(order.getCustomer().getEmail(), subject, body);
-        }
-
-        // If order is delivered, update payment status if pending
-        if ("DELIVERED".equals(status) && "PENDING".equals(order.getPaymentStatus())) {
-            order.setPaymentStatus("PAID");
-
-            // Record revenue
-            storeService.recordRevenue(order.getStore().getId(), BigDecimal.valueOf(order.getTotalAmount()));
-        }
-
-        return orderRepository.save(order);
-    }
+//    @Transactional
+//    public Order updateOrderStatus(Long orderId, String status) {
+//        Order order = getOrderById(orderId);
+//        order.updateStatus(status);
+//
+//        // If order is shipped, set tracking information
+//        if ("SHIPPED".equals(status)) {
+//            order.setTrackingNumber("TRK" + (10000000 + new Random().nextInt(90000000)) + "IN");
+//            order.setCarrierName("Express Delivery");
+//            order.setEstimatedDelivery(LocalDateTime.now().plusDays(3));
+//
+//            // Send shipping notification
+//            String subject = "Order Shipped - #" + order.getOrderNumber();
+//            String body = "Dear " + order.getCustomer().getName() + ",\n\n" +
+//                    "Your order #" + order.getOrderNumber() + " has been shipped!\n" +
+//                    "Tracking number: " + order.getTrackingNumber() + "\n" +
+//                    "Carrier: " + order.getCarrierName() + "\n" +
+//                    "Estimated delivery: " + order.getEstimatedDelivery().toLocalDate() + "\n\n" +
+//                    "Thank you for shopping with us!";
+//            emailService.sendEmail(order.getCustomer().getEmail(), subject, body);
+//        }
+//
+//        // If order is delivered, update payment status if pending
+//        if ("DELIVERED".equals(status) && "PENDING".equals(order.getPaymentStatus())) {
+//            order.setPaymentStatus("PAID");
+//
+//            // Record revenue
+//            storeService.recordRevenue(order.getStore().getId(), BigDecimal.valueOf(order.getTotalAmount()));
+//        }
+//
+//        return orderRepository.save(order);
+//    }
 
     @Transactional(readOnly = true)
     public Map<String, Long> getOrderStats(Long storeId) {
@@ -349,49 +350,119 @@ public class OrderService {
         return stats;
     }
 
+//    @Transactional
+//    public void sendOrderEmail(Long orderId, String emailType) {
+//        Order order = getOrderById(orderId);
+//        String subject = "";
+//        String body = "";
+//
+//        switch (emailType) {
+//            case "order_confirmation":
+//                subject = "Order Confirmation - #" + order.getOrderNumber();
+//                body = "Dear " + order.getCustomer().getName() + ",\n\n" +
+//                        "Your order #" + order.getOrderNumber() + " has been successfully placed!\n" +
+//                        "We will notify you once it's shipped.\n\n" +
+//                        "Thank you for shopping with us!";
+//                break;
+//
+//            case "shipping_confirmation":
+//                subject = "Order Shipped - #" + order.getOrderNumber();
+//                body = "Dear " + order.getCustomer().getName() + ",\n\n" +
+//                        "Your order #" + order.getOrderNumber() + " has been shipped!\n";
+//
+//                if (order.getTrackingNumber() != null) {
+//                    body += "Tracking number: " + order.getTrackingNumber() + "\n" +
+//                            "Carrier: " + order.getCarrierName() + "\n";
+//                }
+//
+//                if (order.getEstimatedDelivery() != null) {
+//                    body += "Estimated delivery: " + order.getEstimatedDelivery().toLocalDate() + "\n\n";
+//                }
+//
+//                body += "Thank you for shopping with us!";
+//                break;
+//
+//            case "invoice":
+//                subject = "Invoice for Order #" + order.getOrderNumber();
+//                body = "Dear " + order.getCustomer().getName() + ",\n\n" +
+//                        "Please find attached the invoice for your order #" + order.getOrderNumber() + ".\n\n" +
+//                        "Thank you for your business!";
+//                break;
+//
+//            default:
+//                throw new IllegalArgumentException("Invalid email type: " + emailType);
+//        }
+//
+//        emailService.sendEmail(order.getCustomer().getEmail(), subject, body);
+//    }
+
+
+    // In your OrderService.java, update the sendOrderConfirmationEmail method
+    private void sendOrderConfirmationEmail(Order order) {
+        emailService.sendOrderConfirmationEmail(order);
+
+        // Send SMS notification if phone number is available
+//        if (order.getCustomer().getPhone() != null) {
+//            smsService.sendSms(order.getCustomer().getPhone(),
+//                    "Your order #" + order.getOrderNumber() + " is confirmed!");
+//        }
+
+        // Notify store owner
+        String storeOwnerEmail = order.getStore().getOwner().getEmail();
+        String ownerSubject = "New Order Received - #" + order.getOrderNumber();
+        String ownerBody = "Hello " + order.getStore().getOwner().getName() + ",\n\n" +
+                "A new order #" + order.getOrderNumber() + " has been placed in your store.\n" +
+                "Please review and process it.\n\nThanks!";
+        emailService.sendEmail(storeOwnerEmail, ownerSubject, ownerBody);
+    }
+
+    // In your updateOrderStatus method, update the email sending when order is shipped
+    @Transactional
+    public Order updateOrderStatus(Long orderId, String status) {
+        Order order = getOrderById(orderId);
+        order.updateStatus(status);
+
+        // If order is shipped, set tracking information
+        if ("SHIPPED".equals(status)) {
+            order.setTrackingNumber("TRK" + (10000000 + new Random().nextInt(90000000)) + "IN");
+            order.setCarrierName("Express Delivery");
+            order.setEstimatedDelivery(LocalDateTime.now().plusDays(3));
+
+            // Send shipping notification
+            emailService.sendShippingConfirmationEmail(order);
+        }
+
+        // If order is delivered, update payment status if pending
+        if ("DELIVERED".equals(status) && "PENDING".equals(order.getPaymentStatus())) {
+            order.setPaymentStatus("PAID");
+
+            // Record revenue
+            storeService.recordRevenue(order.getStore().getId(), BigDecimal.valueOf(order.getTotalAmount()));
+        }
+
+        return orderRepository.save(order);
+    }
+
+    // Update the sendOrderEmail method to use the appropriate template
     @Transactional
     public void sendOrderEmail(Long orderId, String emailType) {
         Order order = getOrderById(orderId);
-        String subject = "";
-        String body = "";
 
         switch (emailType) {
             case "order_confirmation":
-                subject = "Order Confirmation - #" + order.getOrderNumber();
-                body = "Dear " + order.getCustomer().getName() + ",\n\n" +
-                        "Your order #" + order.getOrderNumber() + " has been successfully placed!\n" +
-                        "We will notify you once it's shipped.\n\n" +
-                        "Thank you for shopping with us!";
+                emailService.sendOrderConfirmationEmail(order);
                 break;
 
             case "shipping_confirmation":
-                subject = "Order Shipped - #" + order.getOrderNumber();
-                body = "Dear " + order.getCustomer().getName() + ",\n\n" +
-                        "Your order #" + order.getOrderNumber() + " has been shipped!\n";
-
-                if (order.getTrackingNumber() != null) {
-                    body += "Tracking number: " + order.getTrackingNumber() + "\n" +
-                            "Carrier: " + order.getCarrierName() + "\n";
-                }
-
-                if (order.getEstimatedDelivery() != null) {
-                    body += "Estimated delivery: " + order.getEstimatedDelivery().toLocalDate() + "\n\n";
-                }
-
-                body += "Thank you for shopping with us!";
+                emailService.sendShippingConfirmationEmail(order);
                 break;
 
             case "invoice":
-                subject = "Invoice for Order #" + order.getOrderNumber();
-                body = "Dear " + order.getCustomer().getName() + ",\n\n" +
-                        "Please find attached the invoice for your order #" + order.getOrderNumber() + ".\n\n" +
-                        "Thank you for your business!";
+                emailService.sendInvoiceEmail(order);
                 break;
 
             default:
                 throw new IllegalArgumentException("Invalid email type: " + emailType);
         }
-
-        emailService.sendEmail(order.getCustomer().getEmail(), subject, body);
     }
 }
