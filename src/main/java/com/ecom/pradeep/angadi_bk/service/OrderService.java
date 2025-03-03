@@ -242,6 +242,53 @@ public class OrderService {
         return orderRepository.findAll(spec, pageable);
     }
 
+//    @Transactional(readOnly = true)
+//    public Page<Order> searchOrders(Long storeId, String status, String keyword,
+//                                    LocalDateTime dateFrom, LocalDateTime dateTo,
+//                                    Double minAmount, Double maxAmount, String customerEmail,
+//                                    Pageable pageable) {
+//
+//        Specification<Order> spec = Specification.where(null);
+//
+//        // Add store filter
+//        spec = spec.and(OrderSpecification.hasStoreId(storeId));
+//
+//        // Add status filter if provided
+//        if (status != null && !status.equalsIgnoreCase("all")) {
+//            spec = spec.and(OrderSpecification.hasStatus(status));
+//        }
+//
+//        // Add keyword search if provided
+//        if (keyword != null && !keyword.isEmpty()) {
+//            spec = spec.and(OrderSpecification.containsKeyword(keyword));
+//        }
+//
+//        // Add date range filter if provided
+//        if (dateFrom != null) {
+//            spec = spec.and(OrderSpecification.createdAtGreaterThanOrEqual(dateFrom));
+//        }
+//
+//        if (dateTo != null) {
+//            spec = spec.and(OrderSpecification.createdAtLessThanOrEqual(dateTo));
+//        }
+//
+//        // Add amount range filter if provided
+//        if (minAmount != null) {
+//            spec = spec.and(OrderSpecification.totalAmountGreaterThanOrEqual(minAmount));
+//        }
+//
+//        if (maxAmount != null) {
+//            spec = spec.and(OrderSpecification.totalAmountLessThanOrEqual(maxAmount));
+//        }
+//
+//        // Add customer email filter if provided
+//        if (customerEmail != null && !customerEmail.isEmpty()) {
+//            spec = spec.and(OrderSpecification.hasCustomerEmail(customerEmail));
+//        }
+//
+//        return orderRepository.findAll(spec, pageable);
+//    }
+
 //    @Transactional
 //    public Order updateOrderStatus(Long orderId, String status) {
 //        Order order = getOrderById(orderId);

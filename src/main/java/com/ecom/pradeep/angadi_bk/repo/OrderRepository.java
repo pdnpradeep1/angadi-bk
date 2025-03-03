@@ -24,7 +24,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("SELECT o FROM Order o WHERE o.customer.id = :customerId")
     List<Order> findByCustomerId(@Param("customerId") Long customerId);
 
-    @Query("SELECT COUNT(o) > 0 FROM Order o WHERE o.customer.id = :customerId AND o.product.id = :productId")
+    @Query("SELECT COUNT(oi) > 0 FROM Order o JOIN o.orderItems oi WHERE o.customer.id = :customerId AND oi.product.id = :productId")
     boolean existsByCustomerIdAndProductId(@Param("customerId") Long customerId, @Param("productId") Long productId);
 
     @Query("SELECT o FROM Order o WHERE o.orderNumber = :orderNumber")
