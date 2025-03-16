@@ -16,8 +16,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.UUID;
 
 @Service
 public class ImageUploadService {
@@ -26,6 +28,12 @@ public class ImageUploadService {
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
+
+    @Value("${upload.dir:/uploads}")
+    private String uploadDir;
+
+    @Value("${app.base-url:http://localhost:8080}")
+    private String baseUrl;
 
 
 //    private static final String BUCKET_NAME = "your-s3-bucket";
@@ -53,19 +61,6 @@ public class ImageUploadService {
         }
     }
 
-//    public String uploadImage(MultipartFile file) {
-//        try {
-//            File tempFile = File.createTempFile("upload-", file.getOriginalFilename());
-//            file.transferTo(tempFile);
-//
-//            String fileName = "products/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-//            PutObjectResponse putObjectResponse = s3Client.putObject(new PutObjectRequest(bucketName, fileName, tempFile));
-//
-//            return s3Client.getUrl(bucketName, fileName).toString();
-//        } catch (Exception e) {
-//            throw new RuntimeException("Failed to upload file", e);
-//        }
-//    }
 
     public void uploadFile(String bucketName, String key, byte[] data) {
         s3Client.putObject(PutObjectRequest.builder()
@@ -105,36 +100,36 @@ public class ImageUploadService {
         }
     }
 
-    public String uploadImage(MultipartFile multipartFile) {
-        try {
-            // ✅ Convert MultipartFile to File
-            File file = convertMultipartFileToFile(multipartFile);
-            String fileName = "products/" + System.currentTimeMillis() + "_" + multipartFile.getOriginalFilename();
-
-            // ✅ Upload file to S3
-            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(fileName)
-                    .build();
-            s3Client.putObject(putObjectRequest, RequestBody.fromFile(file));
-
-
-            // ✅ Generate a Presigned URL (valid for 7 days)
-            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofDays(7))
-                    .getObjectRequest(r -> r.bucket(bucketName).key(fileName))
-                    .build();
-
-            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
-
-            // ✅ Delete temporary file after upload
-            file.delete();
-
-            return presignedRequest.url().toString();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to upload file", e);
-        }
-    }
+//    public String uploadImage(MultipartFile multipartFile) {
+//        try {
+//            // ✅ Convert MultipartFile to File
+//            File file = convertMultipartFileToFile(multipartFile);
+//            String fileName = "products/" + System.currentTimeMillis() + "_" + multipartFile.getOriginalFilename();
+//
+//            // ✅ Upload file to S3
+//            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+//                    .bucket(bucketName)
+//                    .key(fileName)
+//                    .build();
+//            s3Client.putObject(putObjectRequest, RequestBody.fromFile(file));
+//
+//
+//            // ✅ Generate a Presigned URL (valid for 7 days)
+//            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+//                    .signatureDuration(Duration.ofDays(7))
+//                    .getObjectRequest(r -> r.bucket(bucketName).key(fileName))
+//                    .build();
+//
+//            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
+//
+//            // ✅ Delete temporary file after upload
+//            file.delete();
+//
+//            return presignedRequest.url().toString();
+//        } catch (Exception e) {
+//            throw new RuntimeException("Failed to upload file", e);
+//        }
+//    }
 
     private File convertMultipartFileToFile(MultipartFile multipartFile) throws IOException {
         File file = File.createTempFile("temp", multipartFile.getOriginalFilename());
@@ -143,6 +138,28 @@ public class ImageUploadService {
             fos.write(multipartFile.getBytes());
         }
         return file;
+    }
+
+    public String uploadImage(MultipartFile file) {
+        try {
+            // Create directory if it doesn't exist
+            Path dirPath = Paths.get(uploadDir);
+            if (!Files.exists(dirPath)) {
+                Files.createDirectories(dirPath);
+            }
+
+            // Generate unique filename
+            String filename = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+
+            // Save file
+            Path filePath = Paths.get(uploadDir, filename);
+            Files.copy(file.getInputStream(), filePath);
+
+            // Return URL
+            return baseUrl + "/uploads/" + filename;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload image: " + e.getMessage());
+        }
     }
 
 

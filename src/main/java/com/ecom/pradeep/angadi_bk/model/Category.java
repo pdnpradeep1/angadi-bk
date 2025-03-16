@@ -67,6 +67,11 @@ public class Category {
     @Transient
     private Long productCount;
 
+    @Transient
+    private Long parentId;
+
+
+
     // Helper method to set slug from name
     @PrePersist
     @PreUpdate
