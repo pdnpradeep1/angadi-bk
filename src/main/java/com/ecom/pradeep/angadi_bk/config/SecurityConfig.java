@@ -94,7 +94,8 @@ public class SecurityConfig {
 
         config.setAllowedOrigins(List.of("http://localhost:3000", "https://your-frontend.com")); // ✅ Allow frontend origin
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type","Owner-Email"));
+//        config.allowedHeaders("Authorization", "Content-Type", "Owner-Email")
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

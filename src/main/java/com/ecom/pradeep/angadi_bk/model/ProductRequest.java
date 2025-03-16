@@ -1,5 +1,9 @@
 package com.ecom.pradeep.angadi_bk.model;
 
+import lombok.Data;
+
+import java.math.BigDecimal;
+@Data
 public class ProductRequest {
 
 //    @NotBlank(message = "Product name is required")
@@ -15,5 +19,14 @@ public class ProductRequest {
 //
 //    @NotNull(message = "Category ID is required")
 //    private Long categoryId;
+
+    private String name;
+    private String description;
+    private BigDecimal price;
+    private BigDecimal originalPrice;
+    private int stockQuantity;
+    private String categoryId;
+    private String imageUrl;
+    private String status;
 
 }

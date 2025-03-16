@@ -52,4 +52,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             @Param("storeId") Long storeId,
             @Param("limit") int limit
     );
+
+    Optional<Product> findByIdAndStoreId(Long productId, Long storeId);
+
+    Long countByCategoryId(Long categoryId);
 }

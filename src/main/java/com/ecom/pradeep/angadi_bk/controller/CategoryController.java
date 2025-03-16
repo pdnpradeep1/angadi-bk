@@ -1,6 +1,8 @@
 package com.ecom.pradeep.angadi_bk.controller;
 import com.ecom.pradeep.angadi_bk.model.Category;
+import com.ecom.pradeep.angadi_bk.model.CategoryDTO;
 import com.ecom.pradeep.angadi_bk.service.CategoryService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -28,8 +30,20 @@ public class CategoryController {
         categoryService.deleteCategory(categoryId, ownerEmail);
     }
 
+
     @GetMapping("/store/{storeId}")
-    public List<Category> getCategoriesByStore(@PathVariable Long storeId) {
-        return categoryService.getCategoriesByStore(storeId);
+    public ResponseEntity<List<CategoryDTO>> getCategoriesByStore(
+            @PathVariable Long storeId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean parentOnly) {
+
+        List<CategoryDTO> categoryDTOs = categoryService.getCategoriesByStore(storeId, status, parentOnly);
+        return ResponseEntity.ok(categoryDTOs);
+    }
+
+    @GetMapping("/store/{storeId}/hierarchy")
+    public ResponseEntity<List<CategoryDTO>> getCategoryHierarchy(@PathVariable Long storeId) {
+        List<CategoryDTO> hierarchy = categoryService.getCategoryHierarchy(storeId);
+        return ResponseEntity.ok(hierarchy);
     }
 }

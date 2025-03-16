@@ -1,5 +1,6 @@
 package com.ecom.pradeep.angadi_bk.model;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -105,8 +106,8 @@ public class Product {
     private String metaKeywords;
 
     // Custom attributes/metadata stored as JSON
-    @Column(columnDefinition = "json")
-    private String metadata;
+//    @Column(columnDefinition = "json")
+//    private String metadata;
 
     // Business methods
     public boolean isInStock() {
@@ -170,4 +171,6 @@ public class Product {
             this.averageRating = totalRating / this.reviews.size();
         }
     }
+
+
 }

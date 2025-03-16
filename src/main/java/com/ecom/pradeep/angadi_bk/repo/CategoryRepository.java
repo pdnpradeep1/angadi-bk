@@ -6,4 +6,13 @@ import java.util.List;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByStoreId(Long storeId);
+    List<Category> findByStoreIdOrderByDisplayOrderAsc(Long storeId);
+
+    List<Category> findByStoreIdAndStatusOrderByDisplayOrderAsc(Long storeId, String status);
+
+    List<Category> findByStoreIdAndParentIsNullOrderByDisplayOrderAsc(Long storeId);
+
+    List<Category> findByStoreIdAndStatusAndParentIsNullOrderByDisplayOrderAsc(Long storeId, String status);
+
+    List<Category> findByParentIdOrderByDisplayOrderAsc(Long id);
 }

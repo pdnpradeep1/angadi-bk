@@ -25,8 +25,8 @@ public class ProductController {
     }
 
     @PostMapping("/{storeId}")
-    public Product createProduct(@PathVariable Long storeId, @RequestBody Product product, @RequestHeader("Owner-Email") String ownerEmail) {
-        return productService.createProduct(storeId, product, ownerEmail);
+    public Product createProduct(@PathVariable Long storeId, @RequestBody ProductRequest productRequest, @RequestHeader("Owner-Email") String ownerEmail) {
+        return productService.createProduct(storeId, productRequest, ownerEmail);
     }
 
     @PutMapping("/{productId}")
@@ -34,7 +34,7 @@ public class ProductController {
         return productService.updateProduct(productId, product, ownerEmail);
     }
 
-    @DeleteMapping("/{productId}")
+    @DeleteMapping("/{storeId}/{productId}")
     public void deleteProduct(@PathVariable Long productId, @RequestHeader("Owner-Email") String ownerEmail) {
         productService.deleteProduct(productId, ownerEmail);
     }
@@ -53,6 +53,11 @@ public class ProductController {
     @GetMapping("/{productId}/in-stock")
     public boolean isProductInStock(@PathVariable Long productId) {
         return productService.isProductInStock(productId);
+    }
+
+    @GetMapping("/{storeId}/{productId}")
+    public Product isProductInStock(@PathVariable Long storeId,@PathVariable Long productId,@RequestHeader("Owner-Email") String ownerEmail) {
+        return productService.getProductDetails(storeId,productId,ownerEmail);
     }
 
     @PutMapping("/{productId}/tags")

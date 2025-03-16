@@ -1,10 +1,7 @@
 package com.ecom.pradeep.angadi_bk.service;
 
 import com.ecom.pradeep.angadi_bk.exceptions.ResourceNotFoundException;
-import com.ecom.pradeep.angadi_bk.model.Category;
-import com.ecom.pradeep.angadi_bk.model.Product;
-import com.ecom.pradeep.angadi_bk.model.Store;
-import com.ecom.pradeep.angadi_bk.model.Tag;
+import com.ecom.pradeep.angadi_bk.model.*;
 import com.ecom.pradeep.angadi_bk.repo.CategoryRepository;
 import com.ecom.pradeep.angadi_bk.repo.ProductRepository;
 import com.ecom.pradeep.angadi_bk.repo.StoreRepository;
@@ -12,6 +9,7 @@ import com.ecom.pradeep.angadi_bk.repo.TagRepository;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,7 +31,8 @@ public class ProductService {
         this.entityManager = entityManager;
     }
 
-    public Product createProduct(Long storeId, Product product, String ownerEmail) {
+    public Product createProduct(Long storeId, ProductRequest productRequest, String ownerEmail) {
+        // Validate store and ownership
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new RuntimeException("Store not found"));
 
@@ -41,7 +40,33 @@ public class ProductService {
             throw new RuntimeException("Unauthorized to create product in this store");
         }
 
+        // Find category if categoryId is provided
+        Category category = null;
+        if (productRequest.getCategoryId() != null && !productRequest.getCategoryId().isEmpty()) {
+            Long categoryId = Long.parseLong(productRequest.getCategoryId());
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId));
+
+            // Verify the category belongs to the correct store
+            if (!category.getStore().getId().equals(storeId)) {
+                throw new RuntimeException("Category does not belong to this store");
+            }
+        }
+
+        // Create new product from request
+        Product product = new Product();
+        product.setName(productRequest.getName());
+        product.setDescription(productRequest.getDescription());
+        product.setPrice(productRequest.getPrice());
+        product.setOriginalPrice(productRequest.getOriginalPrice());
+        product.setStockQuantity(productRequest.getStockQuantity());
+        product.setImageUrl(productRequest.getImageUrl());
+        product.setStatus(productRequest.getStatus());
         product.setStore(store);
+        product.setCategory(category);
+        product.setCreatedAt(LocalDateTime.now());
+
+        // Save and return the product
         return productRepository.save(product);
     }
 
@@ -163,4 +188,11 @@ public class ProductService {
     }
 
 
+    public Product getProductDetails(Long storeId, Long productId,String ownerEmail) {
+        Product product = productRepository.findByIdAndStoreId(productId,storeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        return product;
+
+    }
 }
