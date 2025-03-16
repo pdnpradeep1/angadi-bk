@@ -1,5 +1,6 @@
 package com.ecom.pradeep.angadi_bk.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -33,15 +34,18 @@ public class Category {
     // Optional parent-child relationship for hierarchical categories
     @ManyToOne
     @JoinColumn(name = "parent_id")
+    @JsonIgnore
     private Category parent;
 
     // Children categories if using hierarchical structure
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Category> children = new ArrayList<>();
 
     // Many categories belong to one store
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
+    @JsonIgnore
     private Store store;
 
     // Image URL for category icon/thumbnail
@@ -69,6 +73,10 @@ public class Category {
 
     @Transient
     private Long parentId;
+
+    @Version
+    private Long version = 0L;
+
 
 
 

@@ -8,6 +8,8 @@ import com.ecom.pradeep.angadi_bk.model.Store;
 import com.ecom.pradeep.angadi_bk.repo.CategoryRepository;
 import com.ecom.pradeep.angadi_bk.repo.ProductRepository;
 import com.ecom.pradeep.angadi_bk.repo.StoreRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,9 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final StoreRepository storeRepository;
     private final ProductRepository productRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public CategoryService(CategoryRepository categoryRepository, StoreRepository storeRepository, ProductRepository productRepository) {
         this.categoryRepository = categoryRepository;
@@ -36,24 +41,35 @@ public class CategoryService {
             throw new RuntimeException("Unauthorized to create category in this store");
         }
 
-        // Set store and initialize displayOrder if not set
-        category.setStore(store);
+        // Create a new Category instance to avoid detached entity issues
+        Category newCategory = new Category();
+        newCategory.setName(category.getName());
+        newCategory.setDescription(category.getDescription());
+        newCategory.setStatus(category.getStatus() != null ? category.getStatus() : "Active");
+        newCategory.setImageUrl(category.getImageUrl());
+        newCategory.setStore(store);
+
+        // Set display order
         if (category.getDisplayOrder() == null) {
-            // Get the highest display order and add 1
             Integer maxOrder = categoryRepository.findMaxDisplayOrderByStoreId(storeId);
-            category.setDisplayOrder(maxOrder != null ? maxOrder + 1 : 0);
+            newCategory.setDisplayOrder(maxOrder != null ? maxOrder + 1 : 0);
+        } else {
+            newCategory.setDisplayOrder(category.getDisplayOrder());
         }
 
         // Set parent if parentId is provided
         if (category.getParentId() != null) {
             Category parent = categoryRepository.findById(category.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent category not found"));
-            category.setParent(parent);
-        }else {
-            category.setParent(null);
+            newCategory.setParent(parent);
+        } else {
+            newCategory.setParent(null);
         }
 
-        Category savedCategory = categoryRepository.save(category);
+        // Initialize version explicitly
+        newCategory.setVersion(0L);
+
+        Category savedCategory = categoryRepository.save(newCategory);
 
         // Convert to DTO and set product count
         CategoryDTO dto = mapToCategoryDTO(savedCategory);

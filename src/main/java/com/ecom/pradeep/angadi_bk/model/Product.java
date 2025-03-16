@@ -1,5 +1,6 @@
 package com.ecom.pradeep.angadi_bk.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -77,17 +78,14 @@ public class Product {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // Store relationship
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    // Category relationship
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    // Tags relationship
     @ManyToMany
     @JoinTable(
             name = "product_tags",
@@ -96,7 +94,6 @@ public class Product {
     )
     private Set<Tag> tags = new HashSet<>();
 
-    // Reviews relationship
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     private List<Review> reviews = new ArrayList<>();
 

@@ -188,11 +188,40 @@ public class ProductService {
     }
 
 
-    public Product getProductDetails(Long storeId, Long productId,String ownerEmail) {
-        Product product = productRepository.findByIdAndStoreId(productId,storeId)
+//    public Product getProductDetails(Long storeId, Long productId,String ownerEmail) {
+//        Product product = productRepository.findByIdAndStoreId(productId,storeId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+//
+//        return product;
+//
+//    }
+
+    public ProductDTO getProductDetails(Long storeId, Long productId, String ownerEmail) {
+        Product product = productRepository.findByIdAndStoreId(productId, storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        return product;
+        // Convert to DTO
+        return convertToProductDTO(product);
+    }
 
+    private ProductDTO convertToProductDTO(Product product) {
+        ProductDTO dto = new ProductDTO();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setDescription(product.getDescription());
+        dto.setPrice(product.getPrice());
+        dto.setOriginalPrice(product.getOriginalPrice());
+        dto.setStockQuantity(product.getStockQuantity());
+        dto.setSku(product.getSku());
+        dto.setImageUrl(product.getImageUrl());
+        dto.setStatus(product.getStatus());
+
+        // Set category info without circular references
+        if (product.getCategory() != null) {
+            dto.setCategoryId(product.getCategory().getId());
+            dto.setCategoryName(product.getCategory().getName());
+        }
+
+        return dto;
     }
 }

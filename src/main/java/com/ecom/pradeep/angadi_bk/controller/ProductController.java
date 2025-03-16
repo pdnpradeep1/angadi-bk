@@ -1,6 +1,7 @@
 package com.ecom.pradeep.angadi_bk.controller;
 
 import com.ecom.pradeep.angadi_bk.model.Product;
+import com.ecom.pradeep.angadi_bk.model.ProductDTO;
 import com.ecom.pradeep.angadi_bk.model.ProductRequest;
 import com.ecom.pradeep.angadi_bk.service.ImageUploadService;
 import com.ecom.pradeep.angadi_bk.service.ProductService;
@@ -56,7 +57,7 @@ public class ProductController {
     }
 
     @GetMapping("/{storeId}/{productId}")
-    public Product isProductInStock(@PathVariable Long storeId,@PathVariable Long productId,@RequestHeader("Owner-Email") String ownerEmail) {
+    public ProductDTO isProductInStock(@PathVariable Long storeId, @PathVariable Long productId, @RequestHeader("Owner-Email") String ownerEmail) {
         return productService.getProductDetails(storeId,productId,ownerEmail);
     }
 
