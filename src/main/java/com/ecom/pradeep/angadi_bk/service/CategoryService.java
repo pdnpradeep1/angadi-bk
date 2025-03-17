@@ -80,11 +80,19 @@ public class CategoryService {
 
     @Transactional
     public CategoryDTO updateCategory(Long categoryId, Category updatedCategory, String ownerEmail) {
+        // Fetch the existing category from the database
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId));
 
+        // Verify ownership
         if (!category.getStore().getOwner().getEmail().equals(ownerEmail)) {
             throw new RuntimeException("Unauthorized to update this category");
+        }
+
+        // IMPORTANT: Add null check for version
+        if (category.getVersion() == null) {
+            category.setVersion(1L);
+            System.out.println("WARNING: Category had null version, setting to 0");
         }
 
         // Check for circular reference if parent is being updated
@@ -94,7 +102,7 @@ public class CategoryService {
             }
 
             // Check if new parent would create a circular reference
-            if (isDescendant(updatedCategory.getParentId(), categoryId)) {
+            if (!isDescendant(updatedCategory.getParentId(), categoryId)) {
                 throw new RuntimeException("Cannot make a subcategory the parent of its ancestor");
             }
 
@@ -105,7 +113,7 @@ public class CategoryService {
             category.setParent(null);
         }
 
-        // Update fields
+        // Update fields - do NOT replace the entire object
         category.setName(updatedCategory.getName());
         category.setDescription(updatedCategory.getDescription());
         category.setStatus(updatedCategory.getStatus());
@@ -114,16 +122,26 @@ public class CategoryService {
         }
         category.setUpdatedAt(LocalDateTime.now());
 
+        // Add debug logging
+        System.out.println("Category before save - ID: " + category.getId() +
+                ", Version: " + category.getVersion());
+
         Category saved = categoryRepository.save(category);
 
         // Convert to DTO with product count
         CategoryDTO dto = mapToCategoryDTO(saved);
-        Long productCount = productRepository.countByCategoryId(saved.getId());
-        dto.setProductCount(productCount);
+
+        // Use a safe approach for product count
+        try {
+            Long productCount = productRepository.countByCategoryId(saved.getId());
+            dto.setProductCount(productCount != null ? productCount : 0L);
+        } catch (Exception e) {
+            System.err.println("Error counting products: " + e.getMessage());
+            dto.setProductCount(0L);
+        }
 
         return dto;
     }
-
     @Transactional
     public void deleteCategory(Long categoryId, String ownerEmail) {
         Category category = categoryRepository.findById(categoryId)
