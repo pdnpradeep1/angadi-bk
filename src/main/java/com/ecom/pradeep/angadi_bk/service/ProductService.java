@@ -6,9 +6,14 @@ import com.ecom.pradeep.angadi_bk.repo.CategoryRepository;
 import com.ecom.pradeep.angadi_bk.repo.ProductRepository;
 import com.ecom.pradeep.angadi_bk.repo.StoreRepository;
 import com.ecom.pradeep.angadi_bk.repo.TagRepository;
+import com.ecom.pradeep.angadi_bk.utils.ProductSpecification;
 import jakarta.persistence.EntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -101,6 +106,24 @@ public class ProductService {
     public List<Product> getProductsByStore(Long storeId) {
         return productRepository.findByStoreId(storeId);
     }
+
+    // New method for filtered products
+    public Page<Product> getFilteredProducts(
+            Long storeId,
+            Long categoryId,
+            String status,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Boolean inStock,
+            String searchTerm,
+            Pageable pageable) {
+
+        Specification<Product> spec = ProductSpecification.withFilters(
+                storeId, categoryId, status, minPrice, maxPrice, inStock, searchTerm);
+
+        return productRepository.findAll(spec, pageable);
+    }
+
     public boolean isProductInStock(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -113,7 +136,7 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Store not found"));
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new RuntimeException("Categor`y not found"));
 
         if (!store.getOwner().getEmail().equals(ownerEmail)) {
             throw new RuntimeException("Unauthorized to create product in this store");
@@ -123,51 +146,6 @@ public class ProductService {
         product.setCategory(category);
         return productRepository.save(product);
     }
-
-//    public Product addTagsToProduct(Long productId, Set<Long> tagIds, String ownerEmail) {
-//        Product product = productRepository.findById(productId)
-//                .orElseThrow(() -> new RuntimeException("Product not found"));
-//
-//        if (!product.getStore().getOwner().getEmail().equals(ownerEmail)) {
-//            throw new RuntimeException("Unauthorized to update product tags");
-//        }
-//
-//        Set<Tag> tags = new HashSet<>(tagRepository.findAllById(tagIds));
-//        product.setTags(tags);
-//        return productRepository.save(product);
-//    }
-
-//    @Cacheable(value = "productSearch", key = "#query + #categoryId + #minPrice + #maxPrice + #inStock")
-//    public List<Product> searchProducts(String query, Long categoryId, Double minPrice, Double maxPrice, Boolean inStock) {
-//        SearchSession searchSession = Search.session(entityManager.unwrap(Session.class));
-//
-//
-//        return searchSession.search(Product.class)
-//                .where(f -> {
-//                    var bool = f.bool();
-//
-//                    if (query != null && !query.isEmpty()) {
-//                        bool.must(f.match().fields("name", "description").matching(query));
-//                    }
-//                    if (categoryId != null) {
-//                        bool.must(f.match().field("category.id").matching(categoryId));
-//                    }
-//                    if (minPrice != null) {
-//                        bool.must(f.range().field("price").atLeast(minPrice));
-//                    }
-//                    if (maxPrice != null) {
-//                        bool.must(f.range().field("price").atMost(maxPrice));
-//                    }
-//                    if (inStock != null && inStock) {
-//                        bool.must(f.range().field("stockQuantity").greaterThan(0));
-//                    }
-//
-//                    return bool;
-//                })
-//                .fetchAllHits();
-//    }
-
-    // Add this method to ProductService
 
     public Product addTagsToProduct(Long productId, Set<Long> tagIds, String ownerEmail) {
         Product product = productRepository.findById(productId)
@@ -186,15 +164,6 @@ public class ProductService {
 
         return productRepository.save(product);
     }
-
-
-//    public Product getProductDetails(Long storeId, Long productId,String ownerEmail) {
-//        Product product = productRepository.findByIdAndStoreId(productId,storeId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-//
-//        return product;
-//
-//    }
 
     public ProductDTO getProductDetails(Long storeId, Long productId, String ownerEmail) {
         Product product = productRepository.findByIdAndStoreId(productId, storeId)
