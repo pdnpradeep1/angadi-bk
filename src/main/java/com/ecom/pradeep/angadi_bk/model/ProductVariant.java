@@ -11,11 +11,11 @@ import java.util.Map;
 @Entity
 @Table(name = "product_variants")
 public class ProductVariant {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private ProductVariantId id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("productId") // Maps the productId in the composite key
     @JoinColumn(name = "product_id", nullable = false)
     @JsonBackReference
     private Product product;
@@ -41,10 +41,31 @@ public class ProductVariant {
     // Attributes like color, size, etc.
     @ElementCollection
     @CollectionTable(name = "variant_attributes",
-            joinColumns = @JoinColumn(name = "variant_id"))
+            joinColumns = {
+                    @JoinColumn(name = "variant_id", referencedColumnName = "variant_id"),
+                    @JoinColumn(name = "product_id", referencedColumnName = "product_id")
+            })
     @MapKeyColumn(name = "attribute_name")
     @Column(name = "attribute_value")
     private Map<String, String> attributes = new HashMap<>();
+
+    // Constructor for convenience
+    public ProductVariant() {
+        this.id = new ProductVariantId();
+    }
+
+    // Convenience method to set variant ID
+    public void setVariantId(Long variantId) {
+        if (this.id == null) {
+            this.id = new ProductVariantId();
+        }
+        this.id.setVariantId(variantId);
+    }
+
+    // Convenience method to get variant ID
+    public Long getVariantId() {
+        return this.id != null ? this.id.getVariantId() : null;
+    }
 
     // Business methods
     public boolean isInStock() {

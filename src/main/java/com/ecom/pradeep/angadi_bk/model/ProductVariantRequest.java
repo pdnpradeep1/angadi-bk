@@ -8,7 +8,8 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 
 @Data
 public class ProductVariantRequest {
-    private Long id;
+    private Long variantId;
+    private Long productId;  // New field to support composite key
     private String sku;
     private BigDecimal price;
     private BigDecimal originalPrice;
@@ -16,28 +17,34 @@ public class ProductVariantRequest {
     private String imageUrl;
     private Map<String, String> attributes = new HashMap<>();
 
-    // Custom setter to handle various types of IDs from frontend
-    @JsonSetter("id")
-    public void setId(Object id) {
+    // Custom setter to handle various types of variant IDs from frontend
+    @JsonSetter("variantId")
+    public void setVariantId(Object id) {
         if (id == null) {
-            this.id = null;
+            this.variantId = null;
             return;
         }
 
         if (id instanceof Long) {
-            this.id = (Long) id;
+            this.variantId = (Long) id;
         } else if (id instanceof Integer) {
-            this.id = ((Integer) id).longValue();
+            this.variantId = ((Integer) id).longValue();
         } else if (id instanceof String) {
             try {
-                this.id = Long.parseLong((String) id);
+                this.variantId = Long.parseLong((String) id);
             } catch (NumberFormatException e) {
                 // For alphanumeric IDs, generate a new numeric ID
-                this.id = System.currentTimeMillis();
+                this.variantId = System.currentTimeMillis();
             }
         } else {
             // Default fallback for any other type
-            this.id = System.currentTimeMillis();
+            this.variantId = System.currentTimeMillis();
         }
+    }
+
+    // For backward compatibility with the old "id" field
+    @JsonSetter("id")
+    public void setId(Object id) {
+        setVariantId(id);
     }
 }

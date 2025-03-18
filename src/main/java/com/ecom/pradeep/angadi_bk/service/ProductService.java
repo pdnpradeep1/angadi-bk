@@ -97,6 +97,16 @@ public class ProductService {
 
             for (ProductVariantRequest variantRequest : productRequest.getVariants()) {
                 ProductVariant variant = new ProductVariant();
+
+                // Set up the composite ID
+                ProductVariantId variantId = new ProductVariantId();
+                // Generate a variant ID if not provided
+                variantId.setVariantId(variantRequest.getVariantId() != null ?
+                        variantRequest.getVariantId() :
+                        System.currentTimeMillis());
+                variantId.setProductId(savedProduct.getId());
+                variant.setId(variantId);
+
                 variant.setProduct(savedProduct);
                 variant.setSku(variantRequest.getSku());
                 variant.setPrice(variantRequest.getPrice());
@@ -176,11 +186,14 @@ public class ProductService {
             // Get existing variants
             List<ProductVariant> existingVariants = productVariantRepository.findByProductId(productId);
 
-            // Create a map of existing variants by ID
+            // Create a map of existing variants by variantId
             Map<Long, ProductVariant> existingVariantMap = existingVariants.stream()
-                    .collect(Collectors.toMap(ProductVariant::getId, v -> v));
+                    .collect(Collectors.toMap(
+                            v -> v.getId().getVariantId(),
+                            v -> v
+                    ));
 
-            // Track IDs we're processing to know which ones to delete later
+            // Track variantIds we're processing to know which ones to delete later
             Set<Long> processedVariantIds = new HashSet<>();
 
             // Process each variant in the request
@@ -188,14 +201,24 @@ public class ProductService {
 
             for (ProductVariantRequest variantRequest : updatedProduct.getVariants()) {
                 ProductVariant variant;
+                Long requestVariantId = variantRequest.getVariantId();
 
-                if (variantRequest.getId() != null && existingVariantMap.containsKey(variantRequest.getId())) {
+                if (requestVariantId != null && existingVariantMap.containsKey(requestVariantId)) {
                     // Update existing variant
-                    variant = existingVariantMap.get(variantRequest.getId());
-                    processedVariantIds.add(variant.getId());
+                    variant = existingVariantMap.get(requestVariantId);
+                    processedVariantIds.add(variant.getId().getVariantId());
                 } else {
                     // Create new variant
                     variant = new ProductVariant();
+
+                    // Set up composite ID
+                    ProductVariantId variantId = new ProductVariantId();
+                    variantId.setVariantId(requestVariantId != null ?
+                            requestVariantId :
+                            System.currentTimeMillis());
+                    variantId.setProductId(savedProduct.getId());
+                    variant.setId(variantId);
+
                     variant.setProduct(savedProduct);
                 }
 
@@ -214,7 +237,7 @@ public class ProductService {
 
             // Delete variants that were not included in the request
             List<ProductVariant> variantsToDelete = existingVariants.stream()
-                    .filter(v -> !processedVariantIds.contains(v.getId()))
+                    .filter(v -> !processedVariantIds.contains(v.getId().getVariantId()))
                     .collect(Collectors.toList());
 
             if (!variantsToDelete.isEmpty()) {
