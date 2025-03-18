@@ -1,7 +1,6 @@
 package com.ecom.pradeep.angadi_bk.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonRawValue;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -17,8 +16,8 @@ import java.util.List;
 import java.util.Set;
 
 @Data
-@ToString
-@EqualsAndHashCode
+@ToString(exclude = {"variants"})
+@EqualsAndHashCode(exclude = {"variants"})
 @Entity
 @Table(name = "products")
 public class Product {
@@ -94,17 +93,18 @@ public class Product {
     )
     private Set<Tag> tags = new HashSet<>();
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews = new ArrayList<>();
+
+    // Add one-to-many relationship with variants
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<ProductVariant> variants = new ArrayList<>();
 
     // SEO fields
     private String metaTitle;
     private String metaDescription;
     private String metaKeywords;
-
-    // Custom attributes/metadata stored as JSON
-//    @Column(columnDefinition = "json")
-//    private String metadata;
 
     // Business methods
     public boolean isInStock() {
@@ -160,14 +160,29 @@ public class Product {
     }
 
     // Method to update the average rating when a new review is added
-    public void updateAverageRating(double rating) {
+    public void updateAverageRating() {
         if (this.reviews.isEmpty()) {
-            this.averageRating = rating;
-        } else {
-            double totalRating = this.averageRating * (this.reviews.size() - 1) + rating;
-            this.averageRating = totalRating / this.reviews.size();
+            this.averageRating = 0.0;
+            return;
         }
+
+        double sum = 0.0;
+        for (Review review : this.reviews) {
+            sum += review.getRating();
+        }
+
+        this.averageRating = sum / this.reviews.size();
     }
 
+    // Helper method to add a variant
+    public void addVariant(ProductVariant variant) {
+        variants.add(variant);
+        variant.setProduct(this);
+    }
 
+    // Helper method to remove a variant
+    public void removeVariant(ProductVariant variant) {
+        variants.remove(variant);
+        variant.setProduct(null);
+    }
 }

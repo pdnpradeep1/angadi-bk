@@ -1,6 +1,5 @@
 package com.ecom.pradeep.angadi_bk.model;
 
-import com.ecom.pradeep.angadi_bk.model.Product;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,6 +18,7 @@ public class ProductDTO {
     private BigDecimal originalPrice;
     private int stockQuantity;
     private String sku;
+    private int lowStockThreshold = 5;
     private String imageUrl;
     private List<String> additionalImageUrls = new ArrayList<>();
     private boolean featured;
@@ -32,6 +32,7 @@ public class ProductDTO {
     private Long categoryId;
     private String categoryName;
     private Set<TagDTO> tags = new HashSet<>();
+    private List<ProductVariantDTO> variants = new ArrayList<>();
     private String metaTitle;
     private String metaDescription;
     private String metaKeywords;
@@ -66,6 +67,7 @@ public class ProductDTO {
         dto.setOriginalPrice(product.getOriginalPrice());
         dto.setStockQuantity(product.getStockQuantity());
         dto.setSku(product.getSku());
+        dto.setLowStockThreshold(product.getLowStockThreshold());
         dto.setImageUrl(product.getImageUrl());
         dto.setAdditionalImageUrls(product.getAdditionalImageUrls());
         dto.setFeatured(product.isFeatured());
@@ -75,15 +77,29 @@ public class ProductDTO {
         dto.setCreatedAt(product.getCreatedAt());
         dto.setUpdatedAt(product.getUpdatedAt());
 
-        dto.setStoreId(product.getStore().getId());
-        dto.setStoreName(product.getStore().getName());
+        if (product.getStore() != null) {
+            dto.setStoreId(product.getStore().getId());
+            dto.setStoreName(product.getStore().getName());
+        }
 
-        dto.setCategoryId(product.getCategory().getId());
-        dto.setCategoryName(product.getCategory().getName());
+        if (product.getCategory() != null) {
+            dto.setCategoryId(product.getCategory().getId());
+            dto.setCategoryName(product.getCategory().getName());
+        }
 
-        dto.setTags(product.getTags().stream()
-                .map(TagDTO::fromTag)
-                .collect(Collectors.toSet()));
+        // Convert tags
+        if (product.getTags() != null) {
+            dto.setTags(product.getTags().stream()
+                    .map(TagDTO::fromTag)
+                    .collect(Collectors.toSet()));
+        }
+
+        // Convert variants
+        if (product.getVariants() != null) {
+            dto.setVariants(product.getVariants().stream()
+                    .map(ProductVariantDTO::fromProductVariant)
+                    .collect(Collectors.toList()));
+        }
 
         dto.setMetaTitle(product.getMetaTitle());
         dto.setMetaDescription(product.getMetaDescription());
@@ -106,6 +122,7 @@ public class ProductDTO {
         product.setOriginalPrice(this.originalPrice);
         product.setStockQuantity(this.stockQuantity);
         product.setSku(this.sku);
+        product.setLowStockThreshold(this.lowStockThreshold);
         product.setImageUrl(this.imageUrl);
         product.setAdditionalImageUrls(this.additionalImageUrls);
         product.setFeatured(this.featured);
@@ -114,7 +131,7 @@ public class ProductDTO {
         product.setMetaDescription(this.metaDescription);
         product.setMetaKeywords(this.metaKeywords);
 
-        // Note: Category, Store, and Tags should be handled separately
+        // Note: Category, Store, Tags, and Variants should be handled separately
         // as they require looking up entities from repositories
     }
 }

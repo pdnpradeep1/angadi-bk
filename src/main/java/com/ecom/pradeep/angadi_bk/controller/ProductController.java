@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -29,18 +28,29 @@ public class ProductController {
     }
 
     @PostMapping("/{storeId}")
-    public Product createProduct(@PathVariable Long storeId, @RequestBody ProductRequest productRequest, @RequestHeader("Owner-Email") String ownerEmail) {
-        return productService.createProduct(storeId, productRequest, ownerEmail);
+    public ResponseEntity<Product> createProduct(
+            @PathVariable Long storeId,
+            @RequestBody ProductRequest productRequest,
+            @RequestHeader("Owner-Email") String ownerEmail) {
+        Product createdProduct = productService.createProduct(storeId, productRequest, ownerEmail);
+        return ResponseEntity.ok(createdProduct);
     }
 
     @PutMapping("/{productId}")
-    public Product updateProduct(@PathVariable Long productId, @RequestBody Product product, @RequestHeader("Owner-Email") String ownerEmail) {
-        return productService.updateProduct(productId, product, ownerEmail);
+    public ResponseEntity<Product> updateProduct(
+            @PathVariable Long productId,
+            @RequestBody ProductRequest productRequest,
+            @RequestHeader("Owner-Email") String ownerEmail) {
+        Product updatedProduct = productService.updateProduct(productId, productRequest, ownerEmail);
+        return ResponseEntity.ok(updatedProduct);
     }
 
-    @DeleteMapping("/{storeId}/{productId}")
-    public void deleteProduct(@PathVariable Long productId, @RequestHeader("Owner-Email") String ownerEmail) {
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> deleteProduct(
+            @PathVariable Long productId,
+            @RequestHeader("Owner-Email") String ownerEmail) {
         productService.deleteProduct(productId, ownerEmail);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/store/{storeId}")
@@ -78,28 +88,31 @@ public class ProductController {
     }
 
     @PostMapping("/upload-image")
-    public String uploadProductImage(@RequestParam("file") MultipartFile file) {
-        return imageUploadService.uploadImage(file);
+    public ResponseEntity<String> uploadProductImage(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(imageUploadService.uploadImage(file));
     }
 
     @GetMapping("/{productId}/in-stock")
-    public boolean isProductInStock(@PathVariable Long productId) {
-        return productService.isProductInStock(productId);
+    public ResponseEntity<Boolean> isProductInStock(@PathVariable Long productId) {
+        boolean inStock = productService.isProductInStock(productId);
+        return ResponseEntity.ok(inStock);
     }
 
     @GetMapping("/{storeId}/{productId}")
-    public ProductDTO getProductDetails(@PathVariable Long storeId, @PathVariable Long productId, @RequestHeader("Owner-Email") String ownerEmail) {
-        return productService.getProductDetails(storeId, productId, ownerEmail);
+    public ResponseEntity<ProductDTO> getProductDetails(
+            @PathVariable Long storeId,
+            @PathVariable Long productId,
+            @RequestHeader(value = "Owner-Email", required = false) String ownerEmail) {
+        ProductDTO productDTO = productService.getProductDetails(storeId, productId, ownerEmail);
+        return ResponseEntity.ok(productDTO);
     }
 
     @PutMapping("/{productId}/tags")
-    public Product addTagsToProduct(@PathVariable Long productId, @RequestBody Set<Long> tagIds, @RequestHeader("Owner-Email") String ownerEmail) {
-        return productService.addTagsToProduct(productId, tagIds, ownerEmail);
+    public ResponseEntity<Product> addTagsToProduct(
+            @PathVariable Long productId,
+            @RequestBody Set<Long> tagIds,
+            @RequestHeader("Owner-Email") String ownerEmail) {
+        Product updatedProduct = productService.addTagsToProduct(productId, tagIds, ownerEmail);
+        return ResponseEntity.ok(updatedProduct);
     }
-
-    @GetMapping("/{productId}")
-    public Product getProduct(@PathVariable Long productId) {
-        // This is a placeholder or stub method and needs implementation
-        return null;
     }
-}

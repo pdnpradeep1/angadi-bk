@@ -1,5 +1,6 @@
 package com.ecom.pradeep.angadi_bk.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ public class ProductVariant {
 
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonBackReference
     private Product product;
 
     // SKU for this specific variant
@@ -25,6 +27,10 @@ public class ProductVariant {
     // Variant can have its own price
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
+
+    // Original price (for showing discounts)
+    @Column(precision = 10, scale = 2)
+    private BigDecimal originalPrice;
 
     // Variant-specific stock
     private int stockQuantity;
@@ -42,10 +48,29 @@ public class ProductVariant {
 
     // Business methods
     public boolean isInStock() {
-        return this.stockQuantity > 0;
+        return this.stockQuantity > 0 || this.stockQuantity == -1;
+    }
+
+    public boolean hasDiscount() {
+        return this.originalPrice != null && this.originalPrice.compareTo(this.price) > 0;
+    }
+
+    public BigDecimal getDiscountPercentage() {
+        if (!hasDiscount()) {
+            return BigDecimal.ZERO;
+        }
+
+        return BigDecimal.ONE
+                .subtract(this.price.divide(this.originalPrice, 2, BigDecimal.ROUND_HALF_UP))
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(0, BigDecimal.ROUND_HALF_UP);
     }
 
     public void decreaseStock(int quantity) {
+        if (this.stockQuantity == -1) {
+            return; // Unlimited stock
+        }
+
         if (this.stockQuantity < quantity) {
             throw new IllegalArgumentException("Not enough stock available");
         }
@@ -54,6 +79,10 @@ public class ProductVariant {
     }
 
     public void increaseStock(int quantity) {
+        if (this.stockQuantity == -1) {
+            return; // Unlimited stock
+        }
+
         this.stockQuantity += quantity;
     }
 }
