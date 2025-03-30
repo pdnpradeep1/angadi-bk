@@ -32,6 +32,16 @@ public class ProductController {
             @PathVariable Long storeId,
             @RequestBody ProductRequest productRequest,
             @RequestHeader("Owner-Email") String ownerEmail) {
+
+        // Log the request body for debugging
+        System.out.println("Received product request: " + productRequest);
+
+        // Process stock quantity
+        if (productRequest.getStockQuantity() == 0) {
+            // Set to -1 for 'Unlimited' when frontend sends 0
+            productRequest.setStockQuantity(-1);
+        }
+
         Product createdProduct = productService.createProduct(storeId, productRequest, ownerEmail);
         return ResponseEntity.ok(createdProduct);
     }
@@ -41,6 +51,16 @@ public class ProductController {
             @PathVariable Long productId,
             @RequestBody ProductRequest productRequest,
             @RequestHeader("Owner-Email") String ownerEmail) {
+
+        // Log the request body for debugging
+        System.out.println("Received product update request: " + productRequest);
+
+        // Process stock quantity
+        if (productRequest.getStockQuantity() == 0) {
+            // Set to -1 for 'Unlimited' when frontend sends 0
+            productRequest.setStockQuantity(-1);
+        }
+
         Product updatedProduct = productService.updateProduct(productId, productRequest, ownerEmail);
         return ResponseEntity.ok(updatedProduct);
     }
@@ -64,7 +84,7 @@ public class ProductController {
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id,asc") String sort) {
+            @RequestParam(defaultValue = "id,desc") String sort) {
 
         // Parse sort parameters
         String[] sortParams = sort.split(",");
@@ -72,19 +92,24 @@ public class ProductController {
         Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("desc") ?
                 Sort.Direction.DESC : Sort.Direction.ASC;
 
+        // Create pageable object
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
 
-        // If no filters, return simple list
-        if (categoryId == null && status == null && minPrice == null &&
-                maxPrice == null && inStock == null && (search == null || search.isEmpty())) {
-            return ResponseEntity.ok(productService.getProductsByStore(storeId));
+        // Check if we need filtering
+        boolean hasFilters = categoryId != null || status != null || minPrice != null ||
+                maxPrice != null || inStock != null || (search != null && !search.isEmpty());
+
+        // Return paginated results
+        if (hasFilters) {
+            // Use filtered query with pagination
+            Page<Product> products = productService.getFilteredProducts(
+                    storeId, categoryId, status, minPrice, maxPrice, inStock, search, pageable);
+            return ResponseEntity.ok(products);
+        } else {
+            // Use simple query with pagination
+            Page<Product> products = productService.getProductsByStore(storeId, pageable);
+            return ResponseEntity.ok(products);
         }
-
-        // Otherwise use filtering
-        Page<Product> products = productService.getFilteredProducts(
-                storeId, categoryId, status, minPrice, maxPrice, inStock, search, pageable);
-
-        return ResponseEntity.ok(products);
     }
 
     @PostMapping("/upload-image")
@@ -107,12 +132,4 @@ public class ProductController {
         return ResponseEntity.ok(productDTO);
     }
 
-    @PutMapping("/{productId}/tags")
-    public ResponseEntity<Product> addTagsToProduct(
-            @PathVariable Long productId,
-            @RequestBody Set<Long> tagIds,
-            @RequestHeader("Owner-Email") String ownerEmail) {
-        Product updatedProduct = productService.addTagsToProduct(productId, tagIds, ownerEmail);
-        return ResponseEntity.ok(updatedProduct);
-    }
-    }
+}

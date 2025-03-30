@@ -4,9 +4,11 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
 
 @Data
 public class ProductRequest {
@@ -15,8 +17,6 @@ public class ProductRequest {
     private BigDecimal price;
     private BigDecimal originalPrice;
     private int stockQuantity;
-    private String sku;
-    private int lowStockThreshold = 5;
     private String categoryId;
     private String imageUrl;
     private List<String> additionalImageUrls = new ArrayList<>();
@@ -26,5 +26,26 @@ public class ProductRequest {
     private String metaDescription;
     private String metaKeywords;
     private Set<Long> tagIds = new HashSet<>();
+
+    // New fields to support the provided structure
     private List<ProductVariantRequest> variants = new ArrayList<>();
+    private Map<String, List<String>> optionsMap = new HashMap<>();
+
+    // Getter and setter for variants (to handle the JSON structure)
+    public List<ProductVariantRequest> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantRequest> variants) {
+        this.variants = variants;
+    }
+
+    // Getter and setter for optionsMap
+    public Map<String, List<String>> getOptionsMap() {
+        return optionsMap;
+    }
+
+    public void setOptionsMap(Map<String, List<String>> optionsMap) {
+        this.optionsMap = optionsMap;
+    }
 }

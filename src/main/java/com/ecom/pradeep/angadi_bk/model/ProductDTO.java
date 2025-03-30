@@ -3,10 +3,7 @@ package com.ecom.pradeep.angadi_bk.model;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Data
@@ -33,6 +30,7 @@ public class ProductDTO {
     private String categoryName;
     private Set<TagDTO> tags = new HashSet<>();
     private List<ProductVariantDTO> variants = new ArrayList<>();
+    private Map<String, List<String>> optionsMap = new HashMap<>();
     private String metaTitle;
     private String metaDescription;
     private String metaKeywords;
@@ -99,6 +97,9 @@ public class ProductDTO {
             dto.setVariants(product.getVariants().stream()
                     .map(ProductVariantDTO::fromProductVariant)
                     .collect(Collectors.toList()));
+
+            // Extract options map from variants
+            dto.setOptionsMap(extractOptionsMap(product.getVariants()));
         }
 
         dto.setMetaTitle(product.getMetaTitle());
@@ -112,6 +113,39 @@ public class ProductDTO {
         dto.setDiscountPercentage(product.getDiscountPercentage());
 
         return dto;
+    }
+
+    // Helper method to extract options map from variants
+    private static Map<String, List<String>> extractOptionsMap(List<ProductVariant> variants) {
+        Map<String, List<String>> optionsMap = new HashMap<>();
+
+        if (variants == null || variants.isEmpty()) {
+            return optionsMap;
+        }
+
+        // Process each variant
+        for (ProductVariant variant : variants) {
+            if (variant.getAttributes() == null || variant.getAttributes().isEmpty()) {
+                continue;
+            }
+
+            // Process attributes from each variant
+            for (Map.Entry<String, String> entry : variant.getAttributes().entrySet()) {
+                String optionName = entry.getKey();
+                String optionValue = entry.getValue();
+
+                if (!optionsMap.containsKey(optionName)) {
+                    optionsMap.put(optionName, new ArrayList<>());
+                }
+
+                List<String> values = optionsMap.get(optionName);
+                if (!values.contains(optionValue)) {
+                    values.add(optionValue);
+                }
+            }
+        }
+
+        return optionsMap;
     }
 
     // Convert from DTO to Entity (for updates)

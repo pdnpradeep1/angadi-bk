@@ -3,13 +3,13 @@ package com.ecom.pradeep.angadi_bk.service;
 import com.ecom.pradeep.angadi_bk.exceptions.ResourceNotFoundException;
 import com.ecom.pradeep.angadi_bk.model.*;
 import com.ecom.pradeep.angadi_bk.repo.*;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -71,8 +71,8 @@ public class ProductService {
         product.setPrice(productRequest.getPrice());
         product.setOriginalPrice(productRequest.getOriginalPrice());
         product.setStockQuantity(productRequest.getStockQuantity());
-        product.setSku(productRequest.getSku());
-        product.setLowStockThreshold(productRequest.getLowStockThreshold());
+        product.setSku(generateSku(productRequest.getName()));
+        product.setLowStockThreshold(5); // Default value
         product.setImageUrl(productRequest.getImageUrl());
         product.setAdditionalImageUrls(productRequest.getAdditionalImageUrls());
         product.setFeatured(productRequest.isFeatured());
@@ -84,6 +84,7 @@ public class ProductService {
         product.setCategory(category);
         product.setTags(tags);
         product.setCreatedAt(LocalDateTime.now());
+
         if ("Active".equals(productRequest.getStatus())) {
             product.setPublishedAt(LocalDateTime.now());
         }
@@ -93,37 +94,56 @@ public class ProductService {
 
         // Process variants if provided
         if (productRequest.getVariants() != null && !productRequest.getVariants().isEmpty()) {
-            List<ProductVariant> variants = new ArrayList<>();
-
-            for (ProductVariantRequest variantRequest : productRequest.getVariants()) {
-                ProductVariant variant = new ProductVariant();
-
-                // Set up the composite ID
-                ProductVariantId variantId = new ProductVariantId();
-                // Generate a variant ID if not provided
-                variantId.setVariantId(variantRequest.getVariantId() != null ?
-                        variantRequest.getVariantId() :
-                        System.currentTimeMillis());
-                variantId.setProductId(savedProduct.getId());
-                variant.setId(variantId);
-
-                variant.setProduct(savedProduct);
-                variant.setSku(variantRequest.getSku());
-                variant.setPrice(variantRequest.getPrice());
-                variant.setStockQuantity(variantRequest.getStockQuantity());
-                variant.setImageUrl(variantRequest.getImageUrl());
-                variant.setAttributes(variantRequest.getAttributes());
-                variants.add(variant);
-            }
-
-            // Save all variants
-            List<ProductVariant> savedVariants = productVariantRepository.saveAll(variants);
-
-            // Do not set variants on the product entity as it might cause LazyInitializationException
-            // The variants will be loaded when needed using the product ID
+            processProductVariants(savedProduct, productRequest.getVariants());
         }
 
         return savedProduct;
+    }
+
+    private String generateSku(String productName) {
+        // Simple SKU generation based on product name and timestamp
+        String namePart = productName.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+        if (namePart.length() > 5) {
+            namePart = namePart.substring(0, 5);
+        }
+        return namePart + "-" + System.currentTimeMillis();
+    }
+
+    private void processProductVariants(Product product, List<ProductVariantRequest> variantRequests) {
+        List<ProductVariant> variants = new ArrayList<>();
+
+        for (ProductVariantRequest variantRequest : variantRequests) {
+            ProductVariant variant = new ProductVariant();
+
+            // Set up the composite ID
+            ProductVariantId variantId = new ProductVariantId();
+            // Use the provided ID or generate a new one
+            Long providedVariantId = variantRequest.getVariantId() != null ?
+                    variantRequest.getVariantId() : variantRequest.getId();
+
+            variantId.setVariantId(providedVariantId != null ?
+                    providedVariantId : System.currentTimeMillis());
+            variantId.setProductId(product.getId());
+            variant.setId(variantId);
+
+            variant.setProduct(product);
+            variant.setSku(variantRequest.getSku() != null ?
+                    variantRequest.getSku() : generateVariantSku(product.getSku(), variants.size() + 1));
+            variant.setPrice(variantRequest.getPrice());
+            variant.setOriginalPrice(variantRequest.getOriginalPrice());
+            variant.setStockQuantity(variantRequest.getStockQuantity());
+            variant.setImageUrl(variantRequest.getImageUrl());
+            variant.setAttributes(variantRequest.getAttributes());
+
+            variants.add(variant);
+        }
+
+        // Save all variants
+        productVariantRepository.saveAll(variants);
+    }
+
+    private String generateVariantSku(String productSku, int variantNumber) {
+        return productSku + "-V" + variantNumber;
     }
 
     @Transactional
@@ -160,10 +180,10 @@ public class ProductService {
         product.setPrice(updatedProduct.getPrice());
         product.setOriginalPrice(updatedProduct.getOriginalPrice());
         product.setStockQuantity(updatedProduct.getStockQuantity());
-        product.setSku(updatedProduct.getSku());
-        product.setLowStockThreshold(updatedProduct.getLowStockThreshold());
         product.setImageUrl(updatedProduct.getImageUrl());
-        product.setAdditionalImageUrls(updatedProduct.getAdditionalImageUrls());
+        if (updatedProduct.getAdditionalImageUrls() != null) {
+            product.setAdditionalImageUrls(updatedProduct.getAdditionalImageUrls());
+        }
         product.setFeatured(updatedProduct.isFeatured());
         product.setStatus(updatedProduct.getStatus());
         product.setMetaTitle(updatedProduct.getMetaTitle());
@@ -183,70 +203,17 @@ public class ProductService {
 
         // Process variants if provided
         if (updatedProduct.getVariants() != null) {
-            // Get existing variants
-            List<ProductVariant> existingVariants = productVariantRepository.findByProductId(productId);
+            // Delete existing variants first
+            productVariantRepository.deleteByProductId(productId);
 
-            // Create a map of existing variants by variantId
-            Map<Long, ProductVariant> existingVariantMap = existingVariants.stream()
-                    .collect(Collectors.toMap(
-                            v -> v.getId().getVariantId(),
-                            v -> v
-                    ));
-
-            // Track variantIds we're processing to know which ones to delete later
-            Set<Long> processedVariantIds = new HashSet<>();
-
-            // Process each variant in the request
-            List<ProductVariant> variantsToSave = new ArrayList<>();
-
-            for (ProductVariantRequest variantRequest : updatedProduct.getVariants()) {
-                ProductVariant variant;
-                Long requestVariantId = variantRequest.getVariantId();
-
-                if (requestVariantId != null && existingVariantMap.containsKey(requestVariantId)) {
-                    // Update existing variant
-                    variant = existingVariantMap.get(requestVariantId);
-                    processedVariantIds.add(variant.getId().getVariantId());
-                } else {
-                    // Create new variant
-                    variant = new ProductVariant();
-
-                    // Set up composite ID
-                    ProductVariantId variantId = new ProductVariantId();
-                    variantId.setVariantId(requestVariantId != null ?
-                            requestVariantId :
-                            System.currentTimeMillis());
-                    variantId.setProductId(savedProduct.getId());
-                    variant.setId(variantId);
-
-                    variant.setProduct(savedProduct);
-                }
-
-                // Update variant data
-                variant.setSku(variantRequest.getSku());
-                variant.setPrice(variantRequest.getPrice());
-                variant.setStockQuantity(variantRequest.getStockQuantity());
-                variant.setImageUrl(variantRequest.getImageUrl());
-                variant.setAttributes(variantRequest.getAttributes());
-
-                variantsToSave.add(variant);
-            }
-
-            // Save all variants
-            productVariantRepository.saveAll(variantsToSave);
-
-            // Delete variants that were not included in the request
-            List<ProductVariant> variantsToDelete = existingVariants.stream()
-                    .filter(v -> !processedVariantIds.contains(v.getId().getVariantId()))
-                    .collect(Collectors.toList());
-
-            if (!variantsToDelete.isEmpty()) {
-                productVariantRepository.deleteAll(variantsToDelete);
-            }
+            // Create new variants
+            processProductVariants(savedProduct, updatedProduct.getVariants());
         }
 
         return savedProduct;
     }
+
+    // Other methods remain unchanged...
 
     @Transactional
     public void deleteProduct(Long productId, String ownerEmail) {
@@ -263,6 +230,11 @@ public class ProductService {
         // Then delete the product
         productRepository.delete(product);
     }
+
+    public Page<Product> getProductsByStore(Long storeId, Pageable pageable) {
+        return productRepository.findByStoreId(storeId, pageable);
+    }
+
 
     public List<Product> getProductsByStore(Long storeId) {
         return productRepository.findByStoreId(storeId);
@@ -360,29 +332,9 @@ public class ProductService {
         List<ProductVariant> variants = productVariantRepository.findByProductId(productId);
 
         // Set variants on the product entity for the DTO conversion
-        // This is safe because we're in a transaction
         product.setVariants(variants);
 
         // Convert to DTO
         return ProductDTO.fromProduct(product);
-    }
-
-    @Transactional
-    public Product addTagsToProduct(Long productId, Set<Long> tagIds, String ownerEmail) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
-
-        // Verify ownership
-        if (!product.getStore().getOwner().getEmail().equals(ownerEmail)) {
-            throw new RuntimeException("Unauthorized to update this product");
-        }
-
-        // Get all tags by IDs
-        Set<Tag> tags = new HashSet<>(tagRepository.findAllById(tagIds));
-
-        // Set the tags on the product
-        product.setTags(tags);
-
-        return productRepository.save(product);
     }
 }
