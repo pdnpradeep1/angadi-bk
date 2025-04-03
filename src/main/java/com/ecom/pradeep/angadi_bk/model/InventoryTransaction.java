@@ -1,64 +1,65 @@
 package com.ecom.pradeep.angadi_bk.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Data
 @Entity
 @Table(name = "inventory_transactions")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class InventoryTransaction {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
-
-    // Change in quantity (positive for additions, negative for subtractions)
-    private int quantityChange;
-
-    // Remaining stock after this transaction
-    private int remainingQuantity;
-
-    // Reference to related order (if applicable)
-    @ManyToOne
-    @JoinColumn(name = "order_id")
-    private Order order;
-
-    // Type of transaction
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TransactionType type;
-
-    // Reason for the adjustment
+    
+    private Integer quantity;
+    
+    // Added fields to match the service requirements
+    private Integer quantityChange;
+    private Integer remainingQuantity;
     private String reason;
-
-    // Who performed the adjustment
     private String performedBy;
-
-    // When the transaction occurred
-    @CreationTimestamp
-    private LocalDateTime timestamp;
-
-    // Notes or additional details
-    @Column(length = 500)
     private String notes;
-
+    
+    @Enumerated(EnumType.STRING)
+    private TransactionType type;
+    
+    private String note;
+    
+    private LocalDateTime timestamp;
+    
     public enum TransactionType {
-        PURCHASE,         // Buying inventory
-        SALE,             // Selling product
-        ADJUSTMENT,       // Manual adjustment
-        RETURN,           // Customer return
-        DAMAGED,          // Damaged goods
-        TRANSFER,         // Transfer between locations
-        INITIAL,          // Initial stock setting
-        EXPIRED,          // Expired products
-        RESERVED,         // Reserved for an order but not yet shipped
-        UNRESERVED        // Released from reservation
+        ADDITION,    // Adding new stock
+        STOCK_REMOVAL,     // Removing stock (e.g., damaged goods)
+        STOCK_ADJUSTMENT,  // Adjusting stock to a specific value
+        ADJUSTMENT,        // Another form of adjustment
+        SALE,              // Stock reduction due to sale
+        RETURN,            // Stock increase due to return
+        RESERVED,          // Stock reserved for an order
+        UNRESERVED  ,       // Stock released from reservation
+        INITIAL
+    }
+    
+    // Add this field
+    @Column(name = "variant_id")
+    private Long variantId;
+    
+    // Add getter and setter
+    public Long getVariantId() {
+        return variantId;
+    }
+    
+    public void setVariantId(Long variantId) {
+        this.variantId = variantId;
     }
 }

@@ -10,6 +10,8 @@ import java.util.List;
 public interface InventoryTransactionRepository extends JpaRepository<InventoryTransaction, Long> {
     List<InventoryTransaction> findByProductIdOrderByTimestampDesc(Long productId);
 
+    List<InventoryTransaction> findByProductIdAndVariantIdOrderByTimestampDesc(Long productId, Long variantId);
+
     List<InventoryTransaction> findTop10ByProductStoreIdOrderByTimestampDesc(Long storeId);
 
     List<InventoryTransaction> findByProductStoreIdAndTypeOrderByTimestampDesc(

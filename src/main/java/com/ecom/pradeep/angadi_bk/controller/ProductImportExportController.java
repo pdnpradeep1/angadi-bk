@@ -22,6 +22,7 @@ import java.util.Date;
 
 @RestController
 @RequestMapping("/products/import-export")
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
 public class ProductImportExportController {
     private final ProductImportExportService importExportService;
 
@@ -145,5 +146,43 @@ public class ProductImportExportController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"product_import_template.xlsx\"")
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(resource);
+    }
+
+    @GetMapping("/export/{format}/{storeId}")
+    public ResponseEntity<Resource> exportProducts(
+            @PathVariable String format,
+            @PathVariable Long storeId,
+            @RequestHeader("Owner-Email") String ownerEmail) {
+        
+        try {
+            // Log the request details for debugging
+            System.out.println("Export request received - Format: " + format + ", StoreId: " + storeId + ", Owner: " + ownerEmail);
+            
+            Resource resource = importExportService.exportProducts(storeId, format, ownerEmail);
+            
+            String filename = "products_export_" + new SimpleDateFormat("yyyyMMdd").format(new Date());
+            String contentType;
+            String extension;
+            
+            if ("csv".equalsIgnoreCase(format)) {
+                contentType = "text/csv";
+                extension = ".csv";
+            } else {
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                extension = ".xlsx";
+            }
+            
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + extension + "\"")
+                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, OPTIONS")
+                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*")
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(resource);
+                
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

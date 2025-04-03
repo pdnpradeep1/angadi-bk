@@ -76,7 +76,10 @@ public class ProductService {
         product.setDescription(productRequest.getDescription());
         product.setPrice(productRequest.getPrice());
         product.setOriginalPrice(productRequest.getOriginalPrice());
+        
+        // Set initial stock quantity (will be updated if variants exist)
         product.setStockQuantity(productRequest.getStockQuantity());
+        
         product.setSku(generateSku(productRequest.getName()));
         product.setLowStockThreshold(5); // Default value
         product.setImageUrl(productRequest.getImageUrl());
@@ -100,7 +103,13 @@ public class ProductService {
 
         // Process variants if provided
         if (productRequest.getVariants() != null && !productRequest.getVariants().isEmpty()) {
-            processProductVariants(savedProduct, productRequest.getVariants());
+            processProductVariants(savedProduct, productRequest.getVariants(), ownerEmail);
+            
+            // Update product stock quantity to match sum of variant quantities
+            updateProductStockFromVariants(savedProduct);
+        } else {
+            // Create inventory transaction for initial stock only if no variants
+            createInventoryTransaction(savedProduct, savedProduct.getStockQuantity(), ownerEmail);
         }
 
         return savedProduct;
@@ -116,6 +125,10 @@ public class ProductService {
     }
 
     private void processProductVariants(Product product, List<ProductVariantRequest> variantRequests) {
+        processProductVariants(product, variantRequests, null);
+    }
+
+    private void processProductVariants(Product product, List<ProductVariantRequest> variantRequests, String ownerEmail) {
         List<ProductVariant> variants = new ArrayList<>();
 
         for (ProductVariantRequest variantRequest : variantRequests) {
@@ -145,11 +158,14 @@ public class ProductService {
         }
 
         // Save all variants
-        productVariantRepository.saveAll(variants);
-    }
-
-    private String generateVariantSku(String productSku, int variantNumber) {
-        return productSku + "-V" + variantNumber;
+        List<ProductVariant> savedVariants = productVariantRepository.saveAll(variants);
+        
+        // Create inventory transactions for each variant if owner email is provided
+        if (ownerEmail != null) {
+            for (ProductVariant variant : savedVariants) {
+                createVariantInventoryTransaction(variant, variant.getStockQuantity(), ownerEmail);
+            }
+        }
     }
 
     @Transactional
@@ -180,12 +196,20 @@ public class ProductService {
             tags = new HashSet<>(tagRepository.findAllById(updatedProduct.getTagIds()));
         }
 
+        // Store old stock quantity for inventory transaction
+        int oldStockQuantity = product.getStockQuantity();
+
         // Update basic product details
         product.setName(updatedProduct.getName());
         product.setDescription(updatedProduct.getDescription());
         product.setPrice(updatedProduct.getPrice());
         product.setOriginalPrice(updatedProduct.getOriginalPrice());
-        product.setStockQuantity(updatedProduct.getStockQuantity());
+        
+        // Only update stock quantity directly if no variants will be processed
+        if (updatedProduct.getVariants() == null || updatedProduct.getVariants().isEmpty()) {
+            product.setStockQuantity(updatedProduct.getStockQuantity());
+        }
+        
         product.setImageUrl(updatedProduct.getImageUrl());
         if (updatedProduct.getAdditionalImageUrls() != null) {
             product.setAdditionalImageUrls(updatedProduct.getAdditionalImageUrls());
@@ -204,19 +228,165 @@ public class ProductService {
             product.setPublishedAt(LocalDateTime.now());
         }
 
-        // Save updated product
-        Product savedProduct = productRepository.save(product);
-
         // Process variants if provided
         if (updatedProduct.getVariants() != null) {
+            // Get existing variants for comparison
+            List<ProductVariant> existingVariants = productVariantRepository.findByProductId(productId);
+            Map<Long, Integer> existingVariantStocks = new HashMap<>();
+            for (ProductVariant variant : existingVariants) {
+                existingVariantStocks.put(variant.getId().getVariantId(), variant.getStockQuantity());
+            }
+            
             // Delete existing variants first
             productVariantRepository.deleteByProductId(productId);
 
             // Create new variants
-            processProductVariants(savedProduct, updatedProduct.getVariants());
+            processProductVariants(product, updatedProduct.getVariants(), ownerEmail);
+            
+            // Update product stock quantity to match sum of variant quantities
+            updateProductStockFromVariants(product);
+        } else {
+            // Check if stock quantity has changed when no variants are involved
+            boolean stockChanged = oldStockQuantity != product.getStockQuantity();
+            if (stockChanged) {
+                int quantityChange = product.getStockQuantity() - oldStockQuantity;
+                createInventoryAdjustmentTransaction(product, quantityChange, ownerEmail);
+            }
         }
 
-        return savedProduct;
+        // Save updated product
+        return productRepository.save(product);
+    }
+    
+    /**
+     * Updates a product's stock quantity to be the sum of all its variant quantities
+     */
+    private void updateProductStockFromVariants(Product product) {
+        List<ProductVariant> variants = productVariantRepository.findByProductId(product.getId());
+        
+        // Calculate total stock from variants
+        int totalStock = 0;
+        boolean hasUnlimitedStock = false;
+        
+        for (ProductVariant variant : variants) {
+            if (variant.getStockQuantity() == -1) {
+                // If any variant has unlimited stock, the product has unlimited stock
+                hasUnlimitedStock = true;
+                break;
+            }
+            totalStock += variant.getStockQuantity();
+        }
+        
+        // Set product stock quantity
+        int oldStockQuantity = product.getStockQuantity();
+        int newStockQuantity = hasUnlimitedStock ? -1 : totalStock;
+        
+        // Update the product stock quantity
+        product.setStockQuantity(newStockQuantity);
+        productRepository.save(product);
+        
+        // Create inventory transaction for the stock change
+        if (oldStockQuantity != newStockQuantity) {
+            createInventoryTransaction(product, newStockQuantity, "System");
+        }
+    }
+
+    // Add helper methods for inventory transactions
+    private void createInventoryTransaction(Product product, int quantity, String performedBy) {
+        if (quantity <= 0 && quantity != -1) { // Allow -1 for unlimited stock
+            return;
+        }
+
+        try {
+            InventoryTransaction transaction = new InventoryTransaction();
+            transaction.setProduct(product);
+            transaction.setQuantity(quantity);
+            transaction.setQuantityChange(quantity);
+            transaction.setRemainingQuantity(quantity);
+            transaction.setType(InventoryTransaction.TransactionType.ADJUSTMENT);
+            transaction.setReason("Initial creation");
+            transaction.setNotes("Product created with initial stock of " + quantity);
+            transaction.setPerformedBy(performedBy);
+            transaction.setTimestamp(LocalDateTime.now());
+
+            inventoryTransactionRepository.save(transaction);
+        } catch (Exception e) {
+            // Log error but don't fail the product creation
+            System.err.println("Failed to create inventory transaction: " + e.getMessage());
+        }
+    }
+
+    private void createVariantInventoryTransaction(ProductVariant variant, int quantity, String performedBy) {
+        if (quantity <= 0 && quantity != -1) { // Allow -1 for unlimited stock
+            return;
+        }
+
+        try {
+            InventoryTransaction transaction = new InventoryTransaction();
+            transaction.setProduct(variant.getProduct());
+            transaction.setVariantId(variant.getId().getVariantId());
+            transaction.setQuantity(quantity);
+            transaction.setQuantityChange(quantity);
+            transaction.setRemainingQuantity(quantity);
+            transaction.setType(InventoryTransaction.TransactionType.ADJUSTMENT);
+            transaction.setReason("Initial creation - variant");
+            
+            // Build a compact note about the variant
+            StringBuilder notesBuilder = new StringBuilder("Variant created: SKU: " + variant.getSku());
+            if (variant.getAttributes() != null && !variant.getAttributes().isEmpty()) {
+                notesBuilder.append(", Attributes: ");
+                int count = 0;
+                for (Map.Entry<String, String> entry : variant.getAttributes().entrySet()) {
+                    if (count > 0) notesBuilder.append(", ");
+                    notesBuilder.append(entry.getKey()).append(":").append(entry.getValue());
+                    count++;
+                    // Limit attributes to avoid exceeding 255 chars
+                    if (count >= 3 || notesBuilder.length() > 200) {
+                        notesBuilder.append("...");
+                        break;
+                    }
+                }
+            }
+            
+            transaction.setNotes(notesBuilder.toString());
+            transaction.setPerformedBy(performedBy);
+            transaction.setTimestamp(LocalDateTime.now());
+
+            inventoryTransactionRepository.save(transaction);
+        } catch (Exception e) {
+            // Log error but don't fail the variant creation
+            System.err.println("Failed to create variant inventory transaction: " + e.getMessage());
+        }
+    }
+
+    private void createInventoryAdjustmentTransaction(Product product, int quantityChange, String performedBy) {
+        if (quantityChange == 0) {
+            return; // No change in quantity
+        }
+
+        try {
+            InventoryTransaction transaction = new InventoryTransaction();
+            transaction.setProduct(product);
+            transaction.setQuantity(product.getStockQuantity());
+            transaction.setQuantityChange(quantityChange);
+            transaction.setRemainingQuantity(product.getStockQuantity());
+            transaction.setType(quantityChange > 0 ? 
+                    InventoryTransaction.TransactionType.ADJUSTMENT : 
+                    InventoryTransaction.TransactionType.STOCK_REMOVAL);
+            transaction.setReason("Stock adjustment");
+            transaction.setNotes("Stock adjusted by " + quantityChange + " units");
+            transaction.setPerformedBy(performedBy);
+            transaction.setTimestamp(LocalDateTime.now());
+
+            inventoryTransactionRepository.save(transaction);
+        } catch (Exception e) {
+            // Log error but don't fail the product update
+            System.err.println("Failed to create inventory adjustment transaction: " + e.getMessage());
+        }
+    }
+
+    private String generateVariantSku(String productSku, int variantNumber) {
+        return productSku + "-V" + variantNumber;
     }
 
     @Transactional

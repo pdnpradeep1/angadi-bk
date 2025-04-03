@@ -15,4 +15,5 @@ public interface ProductImportExportService {
     Resource exportProductsToCSV(Long storeId, String ownerEmail) throws IOException;
     
     Resource exportProductsToExcel(Long storeId, String ownerEmail) throws IOException;
+    Resource exportProducts(Long storeId, String format, String ownerEmail) throws IOException;
 }

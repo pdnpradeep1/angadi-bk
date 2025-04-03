@@ -39,7 +39,7 @@ public class Product {
     private BigDecimal originalPrice;
 
     // -1 means unlimited stock
-    private int stockQuantity;
+    private Integer stockQuantity;
 
     // SKU (Stock Keeping Unit) - unique product identifier
     private String sku;
