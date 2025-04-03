@@ -18,16 +18,16 @@ public class RefreshTokenService {
         this.userRepository = userRepository;
     }
 
-    public RefreshToken createRefreshToken(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
+    // Add this method to create refresh token with custom expiration
+    public RefreshToken createRefreshToken(Long userId, long expirationMs) {
         RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setUser(user);
+        
+        refreshToken.setUser(userRepository.findById(userId).get());
+        refreshToken.setExpiryDate(Instant.now().plusMillis(expirationMs));
         refreshToken.setToken(UUID.randomUUID().toString());
-        refreshToken.setExpiryDate(Instant.now().plusSeconds(604800)); // 7 days
-
-        return refreshTokenRepository.save(refreshToken);
+        
+        refreshToken = refreshTokenRepository.save(refreshToken);
+        return refreshToken;
     }
 
     public boolean validateRefreshToken(String token) {

@@ -2,6 +2,8 @@ package com.ecom.pradeep.angadi_bk.repo;
 
 import com.ecom.pradeep.angadi_bk.model.InventoryTransaction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -12,4 +14,8 @@ public interface InventoryTransactionRepository extends JpaRepository<InventoryT
 
     List<InventoryTransaction> findByProductStoreIdAndTypeOrderByTimestampDesc(
             Long storeId, InventoryTransaction.TransactionType type);
+
+    @Modifying
+    @Transactional
+    void deleteByProductId(Long productId);
 }

@@ -23,16 +23,22 @@ public class ProductService {
     private final TagRepository tagRepository;
     private final CategoryRepository categoryRepository;
 
+    // Add this field to your ProductService class
+    private final InventoryTransactionRepository inventoryTransactionRepository;
+
+    // Update the constructor to include the new repository
     public ProductService(ProductRepository productRepository,
                           ProductVariantRepository productVariantRepository,
                           StoreRepository storeRepository,
                           TagRepository tagRepository,
-                          CategoryRepository categoryRepository) {
+                          CategoryRepository categoryRepository,
+                          InventoryTransactionRepository inventoryTransactionRepository) {
         this.productRepository = productRepository;
         this.productVariantRepository = productVariantRepository;
         this.storeRepository = storeRepository;
         this.tagRepository = tagRepository;
         this.categoryRepository = categoryRepository;
+        this.inventoryTransactionRepository = inventoryTransactionRepository;
     }
 
     @Transactional
@@ -213,8 +219,6 @@ public class ProductService {
         return savedProduct;
     }
 
-    // Other methods remain unchanged...
-
     @Transactional
     public void deleteProduct(Long productId, String ownerEmail) {
         Product product = productRepository.findById(productId)
@@ -223,6 +227,10 @@ public class ProductService {
         if (!product.getStore().getOwner().getEmail().equals(ownerEmail)) {
             throw new RuntimeException("Unauthorized to delete this product");
         }
+
+        // Delete associated inventory transactions first
+        // You need to inject InventoryTransactionRepository
+        inventoryTransactionRepository.deleteByProductId(productId);
 
         // Delete associated variants first
         productVariantRepository.deleteByProductId(productId);

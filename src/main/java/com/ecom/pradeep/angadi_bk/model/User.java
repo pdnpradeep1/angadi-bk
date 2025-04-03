@@ -26,6 +26,8 @@ public class User {
     private String resetToken;
     private Long resetTokenExpiry;
 
+    private String provider;
+
     // Getters and setters
 
     @ManyToMany(fetch = FetchType.EAGER)

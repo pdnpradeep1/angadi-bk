@@ -12,22 +12,25 @@ import java.util.List;
 public class JwtUtil {
     private final Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-//    public String generateToken(String email) {
-//        return Jwts.builder()
-//                .setSubject(email)
-//                .setIssuedAt(new Date())
-//                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
-//                .signWith(secretKey)
-//                .compact();
-//    }
-    public String generateToken(String email, List<String> roles) {
+    // Method with roles and custom expiration
+    public String generateToken(String username, List<String> roles, long expirationMs) {
         return Jwts.builder()
-                .setSubject(email)
-                .claim("roles", roles)  // ✅ Add roles to JWT
+                .setSubject(username)
+                .claim("roles", roles)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
+                // Replace the deprecated signWith method
+                // From:
                 .signWith(secretKey)
+                
+                // To:
+                // .signWith(Key), SignatureAlgorithm.HS512)
                 .compact();
+    }
+
+    // Method with roles and default expiration
+    public String generateToken(String username, List<String> roles) {
+        return generateToken(username, roles,  1000 * 60 * 60);
     }
 
     public String extractEmail(String token) {

@@ -1,33 +1,60 @@
 package com.ecom.pradeep.angadi_bk.model;
 
-import lombok.Data;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
 public class ImportResult {
-    private int totalRows;
+    private int totalProcessed;
     private int successCount;
-    private int failureCount;
-    private List<RowError> errors = new ArrayList<>();
+    private int errorCount;
+    private List<String> errors;
 
-    @Data
-    public static class RowError {
-        private int rowNumber;
-        private String errorMessage;
-
-        public RowError(int rowNumber, String errorMessage) {
-            this.rowNumber = rowNumber;
-            this.errorMessage = errorMessage;
-        }
+    public ImportResult() {
+        this.errors = new ArrayList<>();
     }
 
-    public void addError(int rowNumber, String message) {
-        errors.add(new RowError(rowNumber, message));
-        failureCount++;
+    public int getTotalProcessed() {
+        return totalProcessed;
+    }
+
+    public void setTotalProcessed(int totalProcessed) {
+        this.totalProcessed = totalProcessed;
+    }
+
+    public int getSuccessCount() {
+        return successCount;
+    }
+
+    public void setSuccessCount(int successCount) {
+        this.successCount = successCount;
+    }
+
+    public int getErrorCount() {
+        return errorCount;
+    }
+
+    public void setErrorCount(int errorCount) {
+        this.errorCount = errorCount;
+    }
+
+    public List<String> getErrors() {
+        return errors;
+    }
+
+    public void setErrors(List<String> errors) {
+        this.errors = errors;
+    }
+
+    public void addError(String error) {
+        this.errors.add(error);
+        this.errorCount++;
     }
 
     public void incrementSuccess() {
-        successCount++;
+        this.successCount++;
+    }
+
+    public void incrementTotal() {
+        this.totalProcessed++;
     }
 }
