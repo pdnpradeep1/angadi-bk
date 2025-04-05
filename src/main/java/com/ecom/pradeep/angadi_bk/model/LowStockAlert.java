@@ -19,6 +19,12 @@ public class LowStockAlert {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+//    @ManyToOne
+//    @JoinColumn(name = "variant_id")
+//    private Long variantId;
+
+    @Column(name = "variant_id")
+    private Long variantId;
     // Current stock level that triggered the alert
     private int currentStock;
 

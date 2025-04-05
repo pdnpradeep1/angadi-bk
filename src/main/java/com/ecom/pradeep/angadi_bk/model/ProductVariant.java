@@ -13,6 +13,7 @@ import java.util.Map;
 public class ProductVariant {
     @EmbeddedId
     private ProductVariantId id;
+    private String variantName;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("productId") // Maps the productId in the composite key
@@ -34,6 +35,7 @@ public class ProductVariant {
 
     // Variant-specific stock
     private int stockQuantity;
+    private Integer lowStockThreshold = 5;
 
     // Variant-specific image
     private String imageUrl;
@@ -44,7 +46,8 @@ public class ProductVariant {
             joinColumns = {
                     @JoinColumn(name = "variant_id", referencedColumnName = "variant_id"),
                     @JoinColumn(name = "product_id", referencedColumnName = "product_id")
-            })
+            },
+            foreignKey = @ForeignKey(name = "variant_attributes_fk"))
     @MapKeyColumn(name = "attribute_name")
     @Column(name = "attribute_value")
     private Map<String, String> attributes = new HashMap<>();

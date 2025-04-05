@@ -302,7 +302,7 @@ public class ProductImportExportServiceImpl implements ProductImportExportServic
             if (hasVariants) {
                 // For products with variants, we're tracking at variant level
                 transaction.setReason("Initial import - Parent product with variants");
-                transaction.setNotes("Product with variants imported via CSV. Stock is sum of variant stocks.");
+                transaction.setNote("Product with variants imported via CSV. Stock is sum of variant stocks.");
 
                 // Add variant information
                 StringBuilder variantInfo = new StringBuilder("Variants: ");
@@ -313,11 +313,11 @@ public class ProductImportExportServiceImpl implements ProductImportExportServic
                     }
                     variantInfo.append(variant.getSku()).append(" (").append(variant.getStockQuantity()).append(" units)");
                 }
-                transaction.setNotes(transaction.getNotes() + " - " + variantInfo.toString());
+                transaction.setNote(transaction.getNote() + " - " + variantInfo.toString());
             } else {
                 // For products without variants, normal tracking
                 transaction.setReason("Initial import");
-                transaction.setNotes("Product imported via CSV");
+                transaction.setNote("Product imported via CSV");
             }
 
             transaction.setPerformedBy(performedBy);
@@ -358,7 +358,7 @@ public class ProductImportExportServiceImpl implements ProductImportExportServic
             if (variant.getAttributes() != null && !variant.getAttributes().isEmpty()) {
                 variantDetails += ", Attributes: " + variant.getAttributes().toString();
             }
-            transaction.setNotes("Variant imported via CSV: " + variantDetails);
+            transaction.setNote("Variant imported via CSV: " + variantDetails);
 
             transaction.setTimestamp(LocalDateTime.now());
 

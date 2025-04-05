@@ -21,6 +21,9 @@ public class InventoryTransaction {
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
+
+     @Enumerated(EnumType.STRING)
+    private TransactionType type;
     
     private Integer quantity;
     
@@ -29,14 +32,12 @@ public class InventoryTransaction {
     private Integer remainingQuantity;
     private String reason;
     private String performedBy;
-    private String notes;
-    
-    @Enumerated(EnumType.STRING)
-    private TransactionType type;
-    
     private String note;
     
-    private LocalDateTime timestamp;
+    private LocalDateTime timestamp = LocalDateTime.now();
+    
+
+    private Long orderId;
     
     public enum TransactionType {
         ADDITION,    // Adding new stock
@@ -47,19 +48,11 @@ public class InventoryTransaction {
         RETURN,            // Stock increase due to return
         RESERVED,          // Stock reserved for an order
         UNRESERVED  ,       // Stock released from reservation
-        INITIAL
+        INITIAL,
+        PURCHASE
     }
-    
-    // Add this field
+
     @Column(name = "variant_id")
     private Long variantId;
-    
-    // Add getter and setter
-    public Long getVariantId() {
-        return variantId;
-    }
-    
-    public void setVariantId(Long variantId) {
-        this.variantId = variantId;
-    }
+
 }

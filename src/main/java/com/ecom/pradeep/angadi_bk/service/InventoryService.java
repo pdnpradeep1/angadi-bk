@@ -79,7 +79,7 @@ public class InventoryService {
         transaction.setType(request.getType());
         transaction.setReason(request.getReason());
         transaction.setPerformedBy(ownerEmail);
-        transaction.setNotes(request.getNotes());
+        transaction.setNote(request.getNotes());
 
         if (request.getOrderId() != null) {
             // Optionally set order if this is related to an order
@@ -255,5 +255,92 @@ public class InventoryService {
      */
     public List<InventoryTransaction> getProductTransactionHistory(Long productId) {
         return transactionRepository.findByProductIdOrderByTimestampDesc(productId);
+    }
+
+    /**
+     * Adjust stock level for a product variant and record the transaction
+     *
+     * @param request Stock adjustment request with variant ID
+     * @param ownerEmail Email of store owner for authorization
+     * @return The created inventory transaction
+     */
+    @Transactional
+    public InventoryTransaction adjustVariantStock(StockAdjustmentRequest request, String ownerEmail) {
+        // Get product
+        Product product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+    
+        // Check ownership
+        if (!product.getStore().getOwner().getEmail().equals(ownerEmail)) {
+            throw new RuntimeException("Unauthorized to adjust stock for this product");
+        }
+        
+        // Find the variant
+        ProductVariant variant = product.getVariants().stream()
+                .filter(v -> v.getId().getVariantId().equals(request.getVariantId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
+    
+        // Handle unlimited inventory case
+        if (variant.getStockQuantity() == -1) {
+            throw new RuntimeException("Cannot adjust stock for variants with unlimited inventory");
+        }
+    
+        // Calculate new stock level
+        int oldQuantity = variant.getStockQuantity();
+        int newQuantity = oldQuantity + request.getQuantityChange();
+    
+        // Ensure stock doesn't go negative unless it's a special case
+        if (newQuantity < 0 && request.getType() != InventoryTransaction.TransactionType.ADJUSTMENT) {
+            throw new RuntimeException("Cannot reduce stock below zero. Current stock: " + oldQuantity);
+        }
+    
+        // Update variant stock
+        variant.setStockQuantity(newQuantity);
+        
+        // Create inventory transaction
+        InventoryTransaction transaction = new InventoryTransaction();
+        transaction.setProduct(product);
+        transaction.setVariantId(variant.getId().getVariantId());
+        transaction.setQuantityChange(request.getQuantityChange());
+        transaction.setRemainingQuantity(newQuantity);
+        transaction.setType(request.getType());
+        transaction.setReason(request.getReason());
+        transaction.setPerformedBy(ownerEmail);
+        transaction.setNote(request.getNotes());
+    
+        if (request.getOrderId() != null) {
+            transaction.setOrderId(request.getOrderId());
+        }
+    
+        // Save transaction
+        InventoryTransaction savedTransaction = transactionRepository.save(transaction);
+        
+        // Update product's overall stock quantity based on all variants
+        updateProductStockFromVariants(product);
+    
+        return savedTransaction;
+    }
+
+    /**
+     * Updates a product's stock quantity to be the sum of all its variant quantities
+     */
+    private void updateProductStockFromVariants(Product product) {
+        // Calculate total stock from variants
+        int totalStock = 0;
+        boolean hasUnlimitedStock = false;
+    
+        for (ProductVariant variant : product.getVariants()) {
+            if (variant.getStockQuantity() == -1) {
+                // If any variant has unlimited stock, the product has unlimited stock
+                hasUnlimitedStock = true;
+                break;
+            }
+            totalStock += variant.getStockQuantity();
+        }
+    
+        // Set product stock quantity
+        product.setStockQuantity(hasUnlimitedStock ? -1 : totalStock);
+        productRepository.save(product);
     }
 }

@@ -24,21 +24,21 @@ public class InventoryTransactionController {
     }
 
     @GetMapping("/transactions/product/{productId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MERCHANT')")
+//    @PreAuthorize("hasRole('ADMIN') or hasRole('MERCHANT')")
     public ResponseEntity<List<InventoryTransactionDTO>> getTransactionsByProduct(@PathVariable Long productId) {
         List<InventoryTransactionDTO> transactions = inventoryTransactionService.getTransactionsByProduct(productId);
         return ResponseEntity.ok(transactions);
     }
 
     @GetMapping("/transactions/store/{storeId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MERCHANT')")
+//    @PreAuthorize("hasRole('ADMIN') or hasRole('MERCHANT')")
     public ResponseEntity<List<InventoryTransactionDTO>> getRecentTransactionsByStore(@PathVariable Long storeId) {
         List<InventoryTransactionDTO> transactions = inventoryTransactionService.getRecentTransactionsByStore(storeId);
         return ResponseEntity.ok(transactions);
     }
 
     @GetMapping("/transactions/store/{storeId}/type/{type}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MERCHANT')")
+//    @PreAuthorize("hasRole('ADMIN') or hasRole('MERCHANT')")
     public ResponseEntity<List<InventoryTransactionDTO>> getTransactionsByStoreAndType(
             @PathVariable Long storeId,
             @PathVariable String type) {
@@ -53,7 +53,7 @@ public class InventoryTransactionController {
     }
 
     @PostMapping("/adjust/{productId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MERCHANT')")
+//    @PreAuthorize("hasRole('ADMIN') or hasRole('MERCHANT')")
     public ResponseEntity<?> adjustInventory(
             @PathVariable Long productId,
             @RequestBody Map<String, Object> request) {

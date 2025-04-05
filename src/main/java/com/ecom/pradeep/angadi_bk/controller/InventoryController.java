@@ -5,10 +5,12 @@ import com.ecom.pradeep.angadi_bk.model.InventoryTransaction;
 import com.ecom.pradeep.angadi_bk.model.LowStockAlert;
 import com.ecom.pradeep.angadi_bk.model.StockAdjustmentRequest;
 import com.ecom.pradeep.angadi_bk.service.InventoryService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/inventory")
@@ -25,6 +27,50 @@ public class InventoryController {
             @RequestHeader("Owner-Email") String ownerEmail) {
 
         return ResponseEntity.ok(inventoryService.adjustStock(request, ownerEmail));
+    }
+    
+    /**
+     * New endpoint to handle inventory updates from the frontend
+     * This matches the endpoint being called from the frontend: /inventory/{storeId}/update
+     */
+    @PostMapping("/{storeId}/update")
+    public ResponseEntity<?> updateInventory(
+            @PathVariable Long storeId,
+            @RequestBody StockAdjustmentRequest request,
+            @RequestHeader("Owner-Email") String ownerEmail) {
+        
+        // Set the storeId from the path parameter
+        request.setStoreId(storeId);
+        
+        try {
+            InventoryTransaction transaction = inventoryService.adjustStock(request, ownerEmail);
+            return ResponseEntity.ok(transaction);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{storeId}/update/product/{productId}/variant/{variantId}")
+    public ResponseEntity<?> updateVariantInventory(
+            @PathVariable Long storeId,
+            @PathVariable Long productId,
+            @PathVariable Long variantId,
+            @RequestBody StockAdjustmentRequest request,
+            @RequestHeader("Owner-Email") String ownerEmail) {
+        
+        // Set the IDs from the path parameters
+        request.setStoreId(storeId);
+        request.setProductId(productId);
+        request.setVariantId(variantId);
+        
+        try {
+            InventoryTransaction transaction = inventoryService.adjustVariantStock(request, ownerEmail);
+            return ResponseEntity.ok(transaction);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/summary/{storeId}")

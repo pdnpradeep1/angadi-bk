@@ -96,7 +96,7 @@ public class InventoryServiceImpl {
         if (variant.getAttributes() != null && !variant.getAttributes().isEmpty()) {
             variantDetails += ", Attributes: " + variant.getAttributes().toString();
         }
-        transaction.setNotes(variantDetails);
+        transaction.setNote(variantDetails);
         transaction.setTimestamp(LocalDateTime.now());
         
         // Update variant and save transaction
@@ -182,7 +182,7 @@ public class InventoryServiceImpl {
                 }
                 variantInfo.append(variant.getSku()).append(" (").append(variant.getStockQuantity()).append(" units)");
             }
-            transaction.setNotes(variantInfo.toString());
+            transaction.setNote(variantInfo.toString());
             transaction.setTimestamp(LocalDateTime.now());
             
             inventoryTransactionRepository.save(transaction);
@@ -210,7 +210,7 @@ public class InventoryServiceImpl {
             transaction.setType(InventoryTransaction.TransactionType.ADJUSTMENT);
             transaction.setReason("Initial import");
             transaction.setPerformedBy(performedBy);
-            transaction.setNotes("Product imported via CSV");
+            transaction.setNote("Product imported via CSV");
             transaction.setTimestamp(LocalDateTime.now());
             
             inventoryTransactionRepository.save(transaction);
@@ -244,7 +244,7 @@ public class InventoryServiceImpl {
             if (variant.getAttributes() != null && !variant.getAttributes().isEmpty()) {
                 variantDetails += ", Attributes: " + variant.getAttributes().toString();
             }
-            transaction.setNotes("Variant imported via CSV: " + variantDetails);
+            transaction.setNote("Variant imported via CSV: " + variantDetails);
             
             transaction.setTimestamp(LocalDateTime.now());
             
