@@ -143,7 +143,8 @@ public class ImageUploadService {
     public String uploadImage(MultipartFile file) {
         try {
             // Create directory if it doesn't exist
-            Path dirPath = Paths.get(uploadDir);
+            // Get absolute path for upload directory
+            Path dirPath = Paths.get(System.getProperty("user.dir"), uploadDir);
             if (!Files.exists(dirPath)) {
                 Files.createDirectories(dirPath);
             }
@@ -151,9 +152,9 @@ public class ImageUploadService {
             // Generate unique filename
             String filename = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
 
-            // Save file
-            Path filePath = Paths.get(uploadDir, filename);
-            Files.copy(file.getInputStream(), filePath);
+            // Save file using absolute path
+            Path filePath = dirPath.resolve(filename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
             // Return URL
             return baseUrl + "/uploads/" + filename;
@@ -161,6 +162,5 @@ public class ImageUploadService {
             throw new RuntimeException("Failed to upload image: " + e.getMessage());
         }
     }
-
 
 }

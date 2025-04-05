@@ -75,6 +75,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ Allow OPTIONS requests
                                 .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers("/uploads/**").permitAll() // Allow access to uploads folder
                                 .requestMatchers("/admin/**").hasAuthority("ADMIN")
                                 .requestMatchers("/super-admin/**").hasAuthority("SUPER_ADMIN")
                                 .requestMatchers("/staff/**").hasAuthority("STAFF")
